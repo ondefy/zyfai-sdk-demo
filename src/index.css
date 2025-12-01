@@ -1,0 +1,25 @@
+:root {
+  font-family: "Inter", "SF Pro Display", system-ui, -apple-system, sans-serif;
+  line-height: 1.4;
+  font-weight: 400;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  color: #f8fafc;
+  background: radial-gradient(circle at top, #0b1930, #01060d);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at top, #0b1930, #01060d);
+}
+
+#root {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+}
