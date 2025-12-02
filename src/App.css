@@ -183,3 +183,64 @@ button:disabled {
   color: #94a3b8;
   font-style: italic;
 }
+
+/* Form elements for deposit/withdraw */
+.form-grid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.form-field span {
+  color: #94a3b8;
+}
+
+.form-field input {
+  background: #0f172a;
+  border: 1px solid #334155;
+  color: inherit;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+
+.form-field input::placeholder {
+  color: #4b5563;
+}
+
+.form-field input:focus {
+  outline: none;
+  border-color: #6d5bfd;
+}
+
+.input-with-presets {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.preset-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+button.preset {
+  padding: 0.3rem 0.65rem;
+  font-size: 0.75rem;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+}
+
+button.preset:hover:not(:disabled) {
+  background: #334155;
+}

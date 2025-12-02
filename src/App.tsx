@@ -1,17 +1,32 @@
 import { useAppKit } from "@reown/appkit/react";
 import type {
   DeploySafeResponse,
+  DepositResponse,
   EarningsResponse,
   Position,
   Protocol,
   SessionKeyResponse,
   SmartWalletResponse,
   SupportedChainId,
+  WithdrawResponse,
 } from "@zyfai/sdk";
 import { ZyfaiSDK } from "@zyfai/sdk";
 import { useEffect, useMemo, useState } from "react";
 import { useAccount, useDisconnect, useWalletClient } from "wagmi";
 import "./App.css";
+
+// Common token addresses per chain for convenience
+const TOKEN_PRESETS: Record<SupportedChainId, { symbol: string; address: string }[]> = {
+  8453: [
+    { symbol: "USDC", address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" },
+  ],
+  42161: [
+    { symbol: "USDC", address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831" },
+  ],
+  9745: [
+    { symbol: "USDT", address: "0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb" },
+  ],
+};
 
 const CHAIN_OPTIONS: { id: SupportedChainId; label: string }[] = [
   { id: 8453, label: "Base (8453)" },
@@ -57,6 +72,16 @@ function App() {
   const [sessionInfo, setSessionInfo] = useState<SessionKeyResponse | null>(
     null
   );
+
+  // Deposit state
+  const [depositToken, setDepositToken] = useState("");
+  const [depositAmount, setDepositAmount] = useState("");
+  const [depositResult, setDepositResult] = useState<DepositResponse | null>(null);
+
+  // Withdraw state
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawReceiver, setWithdrawReceiver] = useState("");
+  const [withdrawResult, setWithdrawResult] = useState<WithdrawResponse | null>(null);
 
   const sdk = useMemo(() => {
     const apiKey = import.meta.env.VITE_ZYFAI_API_KEY;
@@ -250,6 +275,75 @@ function App() {
     }
   };
 
+  const executeDeposit = async () => {
+    if (!ensureWallet()) {
+      return;
+    }
+
+    if (!depositToken) {
+      setStatus("Please enter a token address for deposit.");
+      return;
+    }
+
+    if (!depositAmount || depositAmount === "0") {
+      setStatus("Please enter a valid deposit amount (in least decimal units).");
+      return;
+    }
+
+    try {
+      setIsBusy(true);
+      setStatus("Depositing funds to ZyFAI…");
+      const response = await sdk!.depositFunds(
+        address!,
+        selectedChain,
+        depositToken,
+        depositAmount
+      );
+      setDepositResult(response);
+      setStatus(
+        response.success
+          ? `Deposit submitted. Tx: ${truncate(response.txHash, 10)}`
+          : "Deposit reported a failure."
+      );
+    } catch (error) {
+      setStatus(`Failed to deposit: ${(error as Error).message}`);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const executeWithdraw = async () => {
+    if (!ensureWallet()) {
+      return;
+    }
+
+    try {
+      setIsBusy(true);
+      const isFullWithdraw = !withdrawAmount || withdrawAmount === "0";
+      setStatus(
+        isFullWithdraw
+          ? "Withdrawing all funds from ZyFAI…"
+          : `Withdrawing ${withdrawAmount} from ZyFAI…`
+      );
+      const response = await sdk!.withdrawFunds(
+        address!,
+        selectedChain,
+        withdrawAmount || undefined,
+        withdrawReceiver || undefined
+      );
+      setWithdrawResult(response);
+      setStatus(
+        response.success
+          ? `Withdraw submitted. Tx: ${truncate(response.txHash, 10)}`
+          : "Withdraw reported a failure."
+      );
+    } catch (error) {
+      setStatus(`Failed to withdraw: ${(error as Error).message}`);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   return (
     <div className="app">
       <header>
@@ -275,6 +369,12 @@ function App() {
                 setWalletInfo(null);
                 setDeploymentResult(null);
                 setSessionInfo(null);
+                setDepositToken("");
+                setDepositAmount("");
+                setDepositResult(null);
+                setWithdrawAmount("");
+                setWithdrawReceiver("");
+                setWithdrawResult(null);
                 setStatus("Wallet disconnected.");
               }}
             >
@@ -413,6 +513,133 @@ function App() {
         ) : (
           <p className="empty">Generate a session to view its metadata.</p>
         )}
+      </section>
+
+      <section className="panel">
+        <h2>Deposit Funds</h2>
+        <p>
+          Transfer tokens into your ZyFAI smart wallet for yield optimization.
+          Amounts are in least decimal units (e.g., 1 USDC = 1000000).
+        </p>
+
+        <div className="form-grid">
+          <label className="form-field">
+            <span>Token Address</span>
+            <div className="input-with-presets">
+              <input
+                type="text"
+                placeholder="0x…"
+                value={depositToken}
+                onChange={(e) => setDepositToken(e.target.value)}
+              />
+              <div className="preset-buttons">
+                {TOKEN_PRESETS[selectedChain]?.map((token) => (
+                  <button
+                    key={token.address}
+                    type="button"
+                    className="preset"
+                    onClick={() => setDepositToken(token.address)}
+                  >
+                    {token.symbol}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </label>
+
+          <label className="form-field">
+            <span>Amount (least decimals)</span>
+            <input
+              type="text"
+              placeholder="e.g. 1000000 for 1 USDC"
+              value={depositAmount}
+              onChange={(e) => setDepositAmount(e.target.value)}
+            />
+          </label>
+        </div>
+
+        <div className="control-buttons" style={{ marginTop: "1rem" }}>
+          <button
+            onClick={executeDeposit}
+            disabled={isBusy || !address || !depositToken || !depositAmount}
+          >
+            Execute Deposit
+          </button>
+        </div>
+
+        {depositResult ? (
+          <div className="callout">
+            <div>
+              <strong>Last Deposit</strong>
+            </div>
+            <p>
+              Status: {depositResult.status} · Amount: {depositResult.amount} ·
+              Tx:{" "}
+              <a
+                href={`https://basescan.org/tx/${depositResult.txHash}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {truncate(depositResult.txHash, 10)}
+              </a>
+            </p>
+          </div>
+        ) : null}
+      </section>
+
+      <section className="panel">
+        <h2>Withdraw Funds</h2>
+        <p>
+          Withdraw funds from your ZyFAI smart wallet. Leave amount empty for a
+          full withdrawal. Leave receiver empty to send to your EOA.
+        </p>
+
+        <div className="form-grid">
+          <label className="form-field">
+            <span>Amount (optional, least decimals)</span>
+            <input
+              type="text"
+              placeholder="Empty = full withdrawal"
+              value={withdrawAmount}
+              onChange={(e) => setWithdrawAmount(e.target.value)}
+            />
+          </label>
+
+          <label className="form-field">
+            <span>Receiver (optional)</span>
+            <input
+              type="text"
+              placeholder="0x… (defaults to your EOA)"
+              value={withdrawReceiver}
+              onChange={(e) => setWithdrawReceiver(e.target.value)}
+            />
+          </label>
+        </div>
+
+        <div className="control-buttons" style={{ marginTop: "1rem" }}>
+          <button onClick={executeWithdraw} disabled={isBusy || !address}>
+            Execute Withdraw
+          </button>
+        </div>
+
+        {withdrawResult ? (
+          <div className="callout">
+            <div>
+              <strong>Last Withdraw</strong>
+            </div>
+            <p>
+              Type: {withdrawResult.type} · Amount: {withdrawResult.amount} ·
+              Receiver: {truncate(withdrawResult.receiver, 8)} · Tx:{" "}
+              <a
+                href={`https://basescan.org/tx/${withdrawResult.txHash}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {truncate(withdrawResult.txHash, 10)}
+              </a>
+            </p>
+          </div>
+        ) : null}
       </section>
 
       <section className="panel">

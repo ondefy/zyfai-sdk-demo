@@ -35,9 +35,11 @@ Ensure the root SDK has been built (`pnpm build` in the repo root) so the latest
 - Resolves deterministic Safe addresses (even if they are not deployed yet) via `getSmartWalletAddress`
 - Deploys Safes on demand through `deploySafe`
 - Creates + registers session keys through `createSessionKey` (sign + `/session-keys/add`)
+- **Deposits funds** into the ZyFAI smart wallet via `depositFunds` (with preset token buttons for USDC/WETH per chain)
+- **Withdraws funds** from the ZyFAI smart wallet via `withdrawFunds` (full or partial, with optional receiver)
 - Fetches data helpers:
   - `getAvailableProtocols(chainId)`
   - `getPositions(userAddress, chainId)`
   - `getEarnings(userAddress, chainId)`
 
-This flow lets you verify safe lifecycle + data retrieval for both existing users (with active positions) and brand-new wallets against the staging ZyFAI backend.
+This flow lets you verify the complete SDK lifecycle - Safe deployment, session key creation, fund management (deposit/withdraw), and data retrieval - for both existing users (with active positions) and brand-new wallets against the staging ZyFAI backend.
