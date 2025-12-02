@@ -653,7 +653,7 @@ function App() {
                 <header>
                   <div>
                     <strong>{protocol.name}</strong>
-                    <span>{protocol.type}</span>
+                    <span> | {protocol.type}</span>
                   </div>
                   <small>
                     Chains: {protocol.chains.join(", ")} | Pools:{" "}
@@ -683,7 +683,7 @@ function App() {
                 <header>
                   <div>
                     <strong>{bundle.strategy ?? "Unknown strategy"}</strong>
-                    <span>{bundle.chain ?? "Unknown chain"}</span>
+                    <span> | {bundle.chain ?? "Unknown chain"}</span>
                   </div>
                   <small>{bundle.smartWallet}</small>
                 </header>
@@ -693,7 +693,7 @@ function App() {
                       <strong>
                         {slot.protocol_name ?? slot.protocol_id ?? "Protocol"}
                       </strong>
-                      <span>{slot.pool ?? "Pool n/a"}</span>
+                      <span> | {slot.pool ?? "Pool n/a"}</span>
                     </div>
                     <ul>
                       <li>Token: {slot.token_symbol ?? "Unknown"}</li>
