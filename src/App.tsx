@@ -2,7 +2,7 @@ import { useAppKit } from "@reown/appkit/react";
 import type {
   DeploySafeResponse,
   DepositResponse,
-  EarningsResponse,
+  // EarningsResponse,
   Position,
   Protocol,
   SessionKeyResponse,
@@ -65,7 +65,7 @@ function App() {
   const [isBusy, setIsBusy] = useState(false);
   const [protocols, setProtocols] = useState<Protocol[]>([]);
   const [positions, setPositions] = useState<PositionBundle[]>([]);
-  const [earnings, setEarnings] = useState<EarningsResponse | null>(null);
+  // const [earnings, setEarnings] = useState<EarningsResponse | null>(null);
   const [walletInfo, setWalletInfo] = useState<SmartWalletResponse | null>(null);
   const [deploymentResult, setDeploymentResult] =
     useState<DeploySafeResponse | null>(null);
@@ -187,23 +187,23 @@ function App() {
     }
   };
 
-  const fetchEarnings = async () => {
-    if (!ensureWallet()) {
-      return;
-    }
+  // const fetchEarnings = async () => {
+  //   if (!ensureWallet()) {
+  //     return;
+  //   }
 
-    try {
-      setIsBusy(true);
-      setStatus("Fetching ZyFAI earnings…");
-      const response = await sdk!.getEarnings(address!, selectedChain);
-      setEarnings(response);
-      setStatus("Earnings summary refreshed.");
-    } catch (error) {
-      setStatus(`Failed to load earnings: ${(error as Error).message}`);
-    } finally {
-      setIsBusy(false);
-    }
-  };
+  //   try {
+  //     setIsBusy(true);
+  //     setStatus("Fetching ZyFAI earnings…");
+  //     const response = await sdk!.getEarnings(address!, selectedChain);
+  //     setEarnings(response);
+  //     setStatus("Earnings summary refreshed.");
+  //   } catch (error) {
+  //     setStatus(`Failed to load earnings: ${(error as Error).message}`);
+  //   } finally {
+  //     setIsBusy(false);
+  //   }
+  // };
 
   const resolveSmartWallet = async () => {
     if (!ensureWallet()) {
@@ -365,7 +365,7 @@ function App() {
                 disconnect();
                 setProtocols([]);
                 setPositions([]);
-                setEarnings(null);
+                // setEarnings(null);
                 setWalletInfo(null);
                 setDeploymentResult(null);
                 setSessionInfo(null);
@@ -420,9 +420,9 @@ function App() {
           <button onClick={fetchPositions} disabled={isBusy || !address}>
             Fetch Positions
           </button>
-          <button onClick={fetchEarnings} disabled={isBusy || !address}>
+          {/* <button onClick={fetchEarnings} disabled={isBusy || !address}>
             Fetch Earnings
-          </button>
+          </button> */}
         </div>
       </section>
 
@@ -709,27 +709,63 @@ function App() {
         )}
       </section>
 
-      <section className="panel">
+      {/* <section className="panel">
         <h2>Earnings</h2>
         {earnings ? (
-          <div className="earnings">
-            <div>
-              <span>Total</span>
-              <strong>${earnings.totalEarningsUsd.toFixed(2)}</strong>
+          <>
+            <div className="earnings">
+              <div>
+                <span>Total</span>
+                <strong>${earnings.totalEarningsUsd.toFixed(6)}</strong>
+              </div>
+              <div>
+                <span>Current (Active)</span>
+                <strong>${earnings.currentEarningsUsd.toFixed(6)}</strong>
+              </div>
+              <div>
+                <span>Lifetime (Realized)</span>
+                <strong>${earnings.lifetimeEarningsUsd.toFixed(6)}</strong>
+              </div>
+              <div>
+                <span>Unrealized</span>
+                <strong>${earnings.unrealizedEarningsUsd.toFixed(6)}</strong>
+              </div>
             </div>
-            <div>
-              <span>Unrealized</span>
-              <strong>${earnings.unrealizedEarningsUsd.toFixed(2)}</strong>
-            </div>
-            <div>
-              <span>Realized</span>
-              <strong>${earnings.realizedEarningsUsd.toFixed(2)}</strong>
-            </div>
-          </div>
+            {earnings.currentEarningsByChain &&
+              Object.keys(earnings.currentEarningsByChain).length > 0 && (
+                <div className="detail-grid" style={{ marginTop: "1rem" }}>
+                  <div className="detail-row">
+                    <span>Current Earnings by Chain</span>
+                  </div>
+                  {Object.entries(earnings.currentEarningsByChain).map(
+                    ([chain, amount]) => (
+                      <div key={chain} className="detail-row">
+                        <span>
+                          {chain === "8453"
+                            ? "Base"
+                            : chain === "42161"
+                              ? "Arbitrum"
+                              : chain === "9745"
+                                ? "Plasma"
+                                : `Chain ${chain}`}
+                        </span>
+                        <strong>${amount.toFixed(6)}</strong>
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
+            {earnings.lastCheckTimestamp && (
+              <p className="empty" style={{ marginTop: "1rem" }}>
+                Last updated:{" "}
+                {new Date(earnings.lastCheckTimestamp).toLocaleString()}
+              </p>
+            )}
+          </>
         ) : (
           <p className="empty">Run the earnings query to populate data.</p>
         )}
-      </section>
+      </section> */}
     </div>
   );
 }
