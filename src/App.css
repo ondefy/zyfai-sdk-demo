@@ -244,3 +244,137 @@ button.preset {
 button.preset:hover:not(:disabled) {
   background: #334155;
 }
+
+/* Stats grid for TVL, Volume, etc. */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.stat-card {
+  background: #050b13;
+  border: 1px solid #1f2937;
+  border-radius: 10px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #6d5bfd;
+}
+
+.stat-breakdown {
+  font-size: 0.8rem;
+  color: #cbd5f5;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #1f2937;
+}
+
+.stat-breakdown div {
+  padding: 0.25rem 0;
+}
+
+/* Badge for rebalance/crosschain indicators */
+.badge {
+  display: inline-block;
+  background: rgba(109, 91, 253, 0.2);
+  color: #a78bfa;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  margin-right: 0.5rem;
+}
+
+/* Earnings section styling */
+.earnings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+}
+
+.earnings > div {
+  background: #050b13;
+  border: 1px solid #1f2937;
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.earnings > div span {
+  display: block;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin-bottom: 0.25rem;
+}
+
+.earnings > div strong {
+  font-size: 1.1rem;
+  color: #22c55e;
+}
+
+/* List article improvements */
+.list article code {
+  background: #0b1220;
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  font-family: "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
+  font-size: 0.75rem;
+  word-break: break-all;
+}
+
+.list article > div {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #cbd5f5;
+}
+
+/* Form field select styling */
+.form-field select {
+  background: #0f172a;
+  border: 1px solid #334155;
+  color: inherit;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+
+.form-field select:focus {
+  outline: none;
+  border-color: #6d5bfd;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .app {
+    padding: 1rem;
+  }
+  
+  header {
+    flex-direction: column;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .earnings {
+    grid-template-columns: 1fr 1fr;
+  }
+}
