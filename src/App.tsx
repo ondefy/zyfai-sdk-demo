@@ -1390,40 +1390,60 @@ function App() {
         {safeOpportunities && safeOpportunities.data.length > 0 && (
           <div className="list" style={{ marginTop: "1rem" }}>
             <strong>Safe Opportunities ({safeOpportunities.data.length})</strong>
-            {safeOpportunities.data.slice(0, 5).map((opp) => (
-              <article key={opp.id}>
-                <header>
+            {safeOpportunities.data.slice(0, 5).map((opp) => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const data = opp as any;
+              const protocolName = data.protocolName || data.protocol_name || "Protocol";
+              const poolName = data.poolName || data.pool_name || "Pool";
+              const apy = data.apy || data.pool_apy || data.combined_apy || 0;
+              const chainId = data.chainId || data.chain_id;
+
+              return (
+                <article key={opp.id}>
+                  <header>
+                    <div>
+                      <strong>{protocolName}</strong>
+                      <span> | {poolName}</span>
+                    </div>
+                    <small>APY: {Number(apy).toFixed(2)}%</small>
+                  </header>
                   <div>
-                    <strong>{opp.protocolName}</strong>
-                    <span> | {opp.poolName}</span>
+                    Chain: {formatChainName(chainId)}
                   </div>
-                  <small>APY: {opp.apy?.toFixed(2) ?? 0}%</small>
-                </header>
-                <div>
-                  Chain: {formatChainName(opp.chainId)} · Asset: {opp.asset || "N/A"}
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         )}
 
         {degenStrategies && degenStrategies.data.length > 0 && (
           <div className="list" style={{ marginTop: "1rem" }}>
             <strong>Degen Strategies ({degenStrategies.data.length})</strong>
-            {degenStrategies.data.slice(0, 5).map((strat) => (
-              <article key={strat.id}>
-                <header>
+            {degenStrategies.data.slice(0, 5).map((strat) => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const data = strat as any;
+              const protocolName = data.protocolName || data.protocol_name || "Protocol";
+              const poolName = data.poolName || data.pool_name || "Pool";
+              const apy = data.apy || data.pool_apy || data.combined_apy || 0;
+              const chainId = data.chainId || data.chain_id;
+              const strategyType = data.strategy_type || data.strategyType;
+
+              return (
+                <article key={strat.id}>
+                  <header>
+                    <div>
+                      <strong>{protocolName}</strong>
+                      <span> | {poolName}</span>
+                    </div>
+                    <small>APY: {Number(apy).toFixed(2)}%</small>
+                  </header>
                   <div>
-                    <strong>{strat.protocolName}</strong>
-                    <span> | {strat.poolName}</span>
+                    Chain: {formatChainName(chainId)}
+                    {strategyType && <span> · Strategy: {strategyType}</span>}
                   </div>
-                  <small>APY: {strat.apy?.toFixed(2) ?? 0}%</small>
-                </header>
-                <div>
-                  Chain: {formatChainName(strat.chainId)} · Asset: {strat.asset || "N/A"} · Risk: {strat.risk || "N/A"}
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         )}
       </section>
@@ -1524,25 +1544,29 @@ function App() {
           <p className="empty">No protocol data loaded yet.</p>
         ) : (
           <div className="list">
-            {protocols.map((protocol) => (
-              <article key={protocol.id}>
-                <header>
-                  <div>
-                    <strong>{protocol.name}</strong>
-                    <span> | {protocol.type}</span>
-                  </div>
-                  <small>
-                    Chains: {protocol.chains.join(", ")} | Pools: {protocol.pools?.length ?? 0}
-                  </small>
-                </header>
-                <p>{protocol.description ?? "No description provided."}</p>
-                {protocol.website && (
-                  <a href={protocol.website} target="_blank" rel="noreferrer">
-                    {protocol.website}
-                  </a>
-                )}
-              </article>
-            ))}
+            {protocols.map((protocol) => {
+              const poolCount = protocol.pools?.length ?? 0;
+              return (
+                <article key={protocol.id}>
+                  <header>
+                    <div>
+                      <strong>{protocol.name}</strong>
+                      <span> | {protocol.type}</span>
+                    </div>
+                    <small>
+                      Chains: {protocol.chains.map(formatChainName).join(", ")}
+                      {poolCount > 0 && <span> | Pools: {poolCount}</span>}
+                    </small>
+                  </header>
+                  <p>{protocol.description ?? "No description provided."}</p>
+                  {protocol.website && (
+                    <a href={protocol.website} target="_blank" rel="noreferrer">
+                      {protocol.website}
+                    </a>
+                  )}
+                </article>
+              );
+            })}
           </div>
         )}
       </section>
@@ -1554,31 +1578,49 @@ function App() {
           <p className="empty">No active ZyFAI positions detected.</p>
         ) : (
           <div className="list">
-            {positions.map((bundle, index) => (
-              <article key={`${bundle.strategy}-${index}`}>
-                <header>
-                  <div>
-                    <strong>{bundle.strategy ?? "Unknown strategy"}</strong>
-                    <span> | {bundle.chain ?? "Unknown chain"}</span>
-                  </div>
-                  <small>{bundle.smartWallet}</small>
-                </header>
-                {(bundle.positions ?? []).map((slot, slotIndex) => (
-                  <div key={`${slot.protocol_id}-${slotIndex}`} className="slot">
+            {positions.map((bundle, index) => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const data = bundle as any;
+              // Chain can be at bundle level or derived from first position
+              const chainName = data.chain ||
+                (data.positions?.[0]?.chain) ||
+                (data.chainId ? formatChainName(data.chainId) : null) ||
+                (data.positions?.[0]?.chain_id ? formatChainName(data.positions[0].chain_id) : "Multi-chain");
+
+              return (
+                <article key={`${bundle.strategy}-${index}`}>
+                  <header>
                     <div>
-                      <strong>{slot.protocol_name ?? slot.protocol_id ?? "Protocol"}</strong>
-                      <span> | {slot.pool ?? "Pool n/a"}</span>
+                      <strong>{bundle.strategy ?? "Unknown strategy"}</strong>
+                      <span> | {chainName}</span>
                     </div>
-                    <ul>
-                      <li>Token: {slot.token_symbol ?? "Unknown"}</li>
-                      <li>Underlying: {slot.underlyingAmount ?? slot.amount ?? "0"}</li>
-                      <li>APY: {slot.pool_apy ?? "n/a"}</li>
-                      <li>Pool TVL: {slot.pool_tvl ?? "n/a"}</li>
-                    </ul>
-                  </div>
-                ))}
-              </article>
-            ))}
+                    <small>{bundle.smartWallet}</small>
+                  </header>
+                  {(bundle.positions ?? []).map((slot, slotIndex) => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const pos = slot as any;
+                    const apy = pos.pool_apy ?? pos.apy;
+                    const tvl = pos.pool_tvl ?? pos.tvl;
+                    const underlying = pos.underlyingAmount ?? pos.underlying_amount ?? pos.amount ?? "0";
+
+                    return (
+                      <div key={`${slot.protocol_id}-${slotIndex}`} className="slot">
+                        <div>
+                          <strong>{slot.protocol_name ?? slot.protocol_id ?? "Protocol"}</strong>
+                          <span> | {slot.pool ?? "Pool n/a"}</span>
+                        </div>
+                        <ul>
+                          <li>Token: {slot.token_symbol ?? "Unknown"}</li>
+                          <li>Underlying: {underlying}</li>
+                          <li>APY: {apy != null ? `${Number(apy).toFixed(2)}%` : "n/a"}</li>
+                          <li>Pool TVL: {tvl != null ? formatUsd(tvl) : "n/a"}</li>
+                        </ul>
+                      </div>
+                    );
+                  })}
+                </article>
+              );
+            })}
           </div>
         )}
       </section>
