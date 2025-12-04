@@ -79,6 +79,16 @@ const formatChainName = (chainId: string | number) => {
   }
 };
 
+const getExplorerUrl = (chainId: string | number, txHash: string) => {
+  const id = String(chainId);
+  switch (id) {
+    case "8453": return `https://basescan.org/tx/${txHash}`;
+    case "42161": return `https://arbiscan.io/tx/${txHash}`;
+    case "9745": return `https://explorer.plasma.io/tx/${txHash}`;
+    default: return `https://etherscan.io/tx/${txHash}`;
+  }
+};
+
 function App() {
   const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
@@ -265,6 +275,13 @@ function App() {
       const response = await sdk!.createSessionKey(address!, selectedChain);
       setSessionInfo(response);
       setStatus("Session key registered with ZyFAI API.");
+      // Refresh user details to get updated hasActiveSessionKey status
+      try {
+        const updatedUser = await sdk!.getUserDetails();
+        setUserDetails(updatedUser);
+      } catch {
+        // Ignore errors - user details refresh is not critical
+      }
     } catch (error) {
       setStatus(`Failed to create session key: ${(error as Error).message}`);
     } finally {
@@ -338,6 +355,30 @@ function App() {
       setStatus("User details loaded.");
     } catch (error) {
       setStatus(`Failed to get user details: ${(error as Error).message}`);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const updateUserProfile = async () => {
+    if (!ensureWallet()) return;
+    if (!walletInfo?.address) {
+      setStatus("Please resolve smart wallet first to get the Safe address.");
+      return;
+    }
+    try {
+      setIsBusy(true);
+      setStatus("Updating user profile with smart wallet…");
+      await sdk!.updateUserProfile({
+        smartWallet: walletInfo.address,
+        chains: [selectedChain],
+      });
+      setStatus(`Profile updated with Smart Wallet: ${truncate(walletInfo.address, 10)}`);
+      // Refresh user details to show updated info
+      const response = await sdk!.getUserDetails();
+      setUserDetails(response);
+    } catch (error) {
+      setStatus(`Failed to update profile: ${(error as Error).message}`);
     } finally {
       setIsBusy(false);
     }
@@ -731,7 +772,7 @@ function App() {
             <p>
               Status: {deploymentResult.status} · Tx:{" "}
               <a
-                href={`https://arbiscan.io/tx/${deploymentResult.txHash}`}
+                href={getExplorerUrl(selectedChain, deploymentResult.txHash)}
                 target="_blank"
                 rel="noreferrer"
               >
@@ -772,7 +813,10 @@ function App() {
             <div className="detail-row">
               <span>Activation</span>
               <strong>
-                {sessionInfo.sessionActivation?.isActive ? "Active" : "Pending"}
+                {sessionInfo.sessionActivation?.isActive ||
+                  userDetails?.user?.hasActiveSessionKey
+                  ? "Active"
+                  : "Pending"}
               </strong>
             </div>
           </div>
@@ -786,11 +830,18 @@ function App() {
         <h2>User Details</h2>
         <p>
           Fetch authenticated user details including smart wallet, chains, and
-          protocol settings.
+          protocol settings. Update profile to link your Smart Wallet before creating session keys.
         </p>
         <div className="control-buttons">
           <button onClick={fetchUserDetails} disabled={isBusy || !address}>
             Get User Details
+          </button>
+          <button
+            onClick={updateUserProfile}
+            disabled={isBusy || !address || !walletInfo?.address}
+            title={!walletInfo?.address ? "Resolve Smart Wallet first" : "Update profile with Smart Wallet address"}
+          >
+            Update Profile
           </button>
         </div>
 
@@ -979,7 +1030,7 @@ function App() {
             <p>
               Status: {depositResult.status} · Amount: {depositResult.amount} · Tx:{" "}
               <a
-                href={`https://basescan.org/tx/${depositResult.txHash}`}
+                href={getExplorerUrl(selectedChain, depositResult.txHash)}
                 target="_blank"
                 rel="noreferrer"
               >
@@ -1033,7 +1084,7 @@ function App() {
               Type: {withdrawResult.type} · Amount: {withdrawResult.amount} ·
               Receiver: {truncate(withdrawResult.receiver, 8)} · Tx:{" "}
               <a
-                href={`https://basescan.org/tx/${withdrawResult.txHash}`}
+                href={getExplorerUrl(selectedChain, withdrawResult.txHash)}
                 target="_blank"
                 rel="noreferrer"
               >
@@ -1283,14 +1334,24 @@ function App() {
             {debankPortfolio.chains && Object.keys(debankPortfolio.chains).length > 0 && (
               <div className="list" style={{ marginTop: "1rem" }}>
                 <strong>By Chain</strong>
-                {Object.entries(debankPortfolio.chains).map(([chainKey, chainData]) => (
-                  <article key={chainKey}>
-                    <header>
-                      <div><strong>{chainData.chainName || formatChainName(chainData.chainId)}</strong></div>
-                      <small>{formatUsd(chainData.totalValueUsd)}</small>
-                    </header>
-                  </article>
-                ))}
+                {Object.entries(debankPortfolio.chains).map(([chainKey, chainData]) => {
+                  // Handle both possible response structures:
+                  // 1. { chainName, chainId, totalValueUsd } - legacy format
+                  // 2. { tokens, summary: { totalValue } } - debank format where chainKey is the chain name
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const data = chainData as any;
+                  const chainName = data.chainName || chainKey.charAt(0).toUpperCase() + chainKey.slice(1);
+                  const totalValue = data.totalValueUsd ?? data.summary?.totalValue ?? 0;
+
+                  return (
+                    <article key={chainKey}>
+                      <header>
+                        <div><strong>{chainName}</strong></div>
+                        <small>{formatUsd(totalValue)}</small>
+                      </header>
+                    </article>
+                  );
+                })}
               </div>
             )}
           </>
@@ -1386,21 +1447,56 @@ function App() {
         {rebalanceInfo && rebalanceInfo.data.length > 0 && (
           <div className="list" style={{ marginTop: "1rem" }}>
             <strong>Recent Rebalances ({rebalanceInfo.count})</strong>
-            {rebalanceInfo.data.slice(0, 5).map((r) => (
-              <article key={r.id}>
-                <header>
-                  <div>
-                    <strong>{r.fromProtocol || "Unknown"}</strong>
-                    <span> → {r.toProtocol || "Unknown"}</span>
+            {rebalanceInfo.data.slice(0, 5).map((r, idx) => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const rebalance = r as any;
+              const chainId = rebalance.chainId ?? rebalance.chain_id;
+              const totalRebalances = rebalance.totalRebalances ?? rebalance.total_rebalances;
+              const sameChainRebalances = rebalance.sameChainRebalances ?? rebalance.same_chain_rebalances;
+              const crossChainRebalances = rebalance.crossChainRebalances ?? rebalance.cross_chain_rebalances;
+              const avgApy = rebalance.averageApy ?? rebalance.average_apy;
+
+              return (
+                <article key={r.id || idx}>
+                  <header>
+                    <div>
+                      <strong>{chainId ? formatChainName(chainId) : "Multi-chain"}</strong>
+                      {totalRebalances != null && <span> · {totalRebalances} rebalances</span>}
+                    </div>
+                    <small>{r.timestamp ? new Date(r.timestamp).toLocaleString() : "N/A"}</small>
+                  </header>
+                  <div className="detail-grid" style={{ marginTop: "0.5rem" }}>
+                    {rebalance.amount != null && (
+                      <div className="detail-row">
+                        <span>Amount</span>
+                        <strong>{formatUsd(Number(rebalance.amount) / 1e6)}</strong>
+                      </div>
+                    )}
+                    {avgApy != null && (
+                      <div className="detail-row">
+                        <span>Avg APY</span>
+                        <strong>{Number(avgApy).toFixed(2)}%</strong>
+                      </div>
+                    )}
+                    {sameChainRebalances != null && (
+                      <div className="detail-row">
+                        <span>Same-chain</span>
+                        <strong>{String(sameChainRebalances)}</strong>
+                      </div>
+                    )}
+                    {crossChainRebalances != null && Number(crossChainRebalances) > 0 && (
+                      <div className="detail-row">
+                        <span>Cross-chain</span>
+                        <strong>{String(crossChainRebalances)}</strong>
+                      </div>
+                    )}
                   </div>
-                  <small>{r.timestamp ? new Date(r.timestamp).toLocaleString() : "N/A"}</small>
-                </header>
-                <div>
-                  {r.isCrossChain && <span className="badge">Cross-chain</span>}
-                  {r.amount && ` Amount: ${r.amount}`}
-                </div>
-              </article>
-            ))}
+                  <div style={{ marginTop: "0.5rem" }}>
+                    {rebalance.isCrossChain && <span className="badge">Cross-chain</span>}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
       </section>
