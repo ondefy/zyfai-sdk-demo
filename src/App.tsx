@@ -1325,35 +1325,51 @@ function App() {
 
         {debankPortfolio && (
           <>
-            <div className="stats-grid">
-              <div className="stat-card">
-                <span className="stat-label">Total Portfolio Value</span>
-                <span className="stat-value">{formatUsd(debankPortfolio.totalValueUsd)}</span>
-              </div>
-            </div>
-            {debankPortfolio.chains && Object.keys(debankPortfolio.chains).length > 0 && (
-              <div className="list" style={{ marginTop: "1rem" }}>
-                <strong>By Chain</strong>
-                {Object.entries(debankPortfolio.chains).map(([chainKey, chainData]) => {
-                  // Handle both possible response structures:
-                  // 1. { chainName, chainId, totalValueUsd } - legacy format
-                  // 2. { tokens, summary: { totalValue } } - debank format where chainKey is the chain name
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  const data = chainData as any;
-                  const chainName = data.chainName || chainKey.charAt(0).toUpperCase() + chainKey.slice(1);
-                  const totalValue = data.totalValueUsd ?? data.summary?.totalValue ?? 0;
+            {(() => {
+              // Calculate total from chain data if totalValueUsd is not provided
+              const chainEntries = debankPortfolio.chains ? Object.entries(debankPortfolio.chains) : [];
+              const calculatedTotal = chainEntries.reduce((sum, [, chainData]) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const data = chainData as any;
+                const value = data.totalValueUsd ?? data.summary?.totalValue ?? 0;
+                return sum + (typeof value === 'number' ? value : 0);
+              }, 0);
+              const totalValue = debankPortfolio.totalValueUsd || calculatedTotal;
 
-                  return (
-                    <article key={chainKey}>
-                      <header>
-                        <div><strong>{chainName}</strong></div>
-                        <small>{formatUsd(totalValue)}</small>
-                      </header>
-                    </article>
-                  );
-                })}
-              </div>
-            )}
+              return (
+                <>
+                  <div className="stats-grid">
+                    <div className="stat-card">
+                      <span className="stat-label">Total Portfolio Value</span>
+                      <span className="stat-value">{formatUsd(totalValue)}</span>
+                    </div>
+                  </div>
+                  {chainEntries.length > 0 && (
+                    <div className="list" style={{ marginTop: "1rem" }}>
+                      <strong>By Chain</strong>
+                      {chainEntries.map(([chainKey, chainData]) => {
+                        // Handle both possible response structures:
+                        // 1. { chainName, chainId, totalValueUsd } - legacy format
+                        // 2. { tokens, summary: { totalValue } } - debank format where chainKey is the chain name
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const data = chainData as any;
+                        const chainName = data.chainName || chainKey.charAt(0).toUpperCase() + chainKey.slice(1);
+                        const chainValue = data.totalValueUsd ?? data.summary?.totalValue ?? 0;
+
+                        return (
+                          <article key={chainKey}>
+                            <header>
+                              <div><strong>{chainName}</strong></div>
+                              <small>{formatUsd(chainValue)}</small>
+                            </header>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </>
         )}
       </section>
