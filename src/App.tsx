@@ -396,7 +396,7 @@ function App() {
       setWithdrawResult(response);
       setStatus(
         response.success
-          ? `Withdraw submitted. Tx: ${truncate(response.txHash, 10)}`
+          ? `Withdraw submitted.`
           : "Withdraw reported a failure."
       );
     } catch (error) {
@@ -1229,14 +1229,7 @@ function App() {
             </div>
             <p>
               Type: {withdrawResult.type} · Amount: {withdrawResult.amount} ·
-              Receiver: {truncate(withdrawResult.receiver, 8)} · Tx:{" "}
-              <a
-                href={getExplorerUrl(selectedChain, withdrawResult.txHash)}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {truncate(withdrawResult.txHash, 10)}
-              </a>
+              Receiver: {truncate(withdrawResult.receiver, 8)} ·
             </p>
           </div>
         )}
