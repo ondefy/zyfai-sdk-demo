@@ -12,7 +12,7 @@ import type {
   TVLResponse,
   VolumeResponse,
   ActiveWalletsResponse,
-  SmartWalletsByEOAResponse,
+  SmartWalletByEOAResponse,
   FirstTopupResponse,
   HistoryResponse,
   OnchainEarningsResponse,
@@ -29,7 +29,10 @@ import { useAccount, useDisconnect, useWalletClient } from "wagmi";
 import "./App.css";
 
 // Common token addresses per chain for convenience
-const TOKEN_PRESETS: Record<SupportedChainId, { symbol: string; address: string }[]> = {
+const TOKEN_PRESETS: Record<
+  SupportedChainId,
+  { symbol: string; address: string }[]
+> = {
   8453: [
     { symbol: "USDC", address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" },
   ],
@@ -55,7 +58,10 @@ const DEFAULT_CHAIN = isSupportedChain(defaultChainEnv)
   ? (defaultChainEnv as SupportedChainId)
   : (8453 as SupportedChainId);
 
-type PositionBundle = Position & { positions?: Position["positions"]; chain?: string };
+type PositionBundle = Position & {
+  positions?: Position["positions"];
+  chain?: string;
+};
 
 const truncate = (value?: string, visible = 8) => {
   if (!value) return "";
@@ -66,26 +72,37 @@ const truncate = (value?: string, visible = 8) => {
 const formatUsd = (value?: number | string) => {
   const num = typeof value === "string" ? parseFloat(value) : value;
   if (num === undefined || num === null || isNaN(num)) return "$0.00";
-  return `$${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`;
+  return `$${num.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 6,
+  })}`;
 };
 
 const formatChainName = (chainId: string | number) => {
   const id = String(chainId);
   switch (id) {
-    case "8453": return "Base";
-    case "42161": return "Arbitrum";
-    case "9745": return "Plasma";
-    default: return `Chain ${id}`;
+    case "8453":
+      return "Base";
+    case "42161":
+      return "Arbitrum";
+    case "9745":
+      return "Plasma";
+    default:
+      return `Chain ${id}`;
   }
 };
 
 const getExplorerUrl = (chainId: string | number, txHash: string) => {
   const id = String(chainId);
   switch (id) {
-    case "8453": return `https://basescan.org/tx/${txHash}`;
-    case "42161": return `https://arbiscan.io/tx/${txHash}`;
-    case "9745": return `https://explorer.plasma.io/tx/${txHash}`;
-    default: return `https://etherscan.io/tx/${txHash}`;
+    case "8453":
+      return `https://basescan.org/tx/${txHash}`;
+    case "42161":
+      return `https://arbiscan.io/tx/${txHash}`;
+    case "9745":
+      return `https://explorer.plasma.io/tx/${txHash}`;
+    default:
+      return `https://etherscan.io/tx/${txHash}`;
   }
 };
 
@@ -96,47 +113,72 @@ function App() {
   const { open } = useAppKit();
 
   const [status, setStatus] = useState("Connect a wallet to begin");
-  const [selectedChain, setSelectedChain] = useState<SupportedChainId>(DEFAULT_CHAIN);
+  const [selectedChain, setSelectedChain] =
+    useState<SupportedChainId>(DEFAULT_CHAIN);
   const [isBusy, setIsBusy] = useState(false);
 
   // Original state
   const [protocols, setProtocols] = useState<Protocol[]>([]);
   const [positions, setPositions] = useState<PositionBundle[]>([]);
-  const [walletInfo, setWalletInfo] = useState<SmartWalletResponse | null>(null);
-  const [deploymentResult, setDeploymentResult] = useState<DeploySafeResponse | null>(null);
-  const [sessionInfo, setSessionInfo] = useState<SessionKeyResponse | null>(null);
+  const [walletInfo, setWalletInfo] = useState<SmartWalletResponse | null>(
+    null
+  );
+  const [deploymentResult, setDeploymentResult] =
+    useState<DeploySafeResponse | null>(null);
+  const [sessionInfo, setSessionInfo] = useState<SessionKeyResponse | null>(
+    null
+  );
 
   // Deposit state
   const [depositToken, setDepositToken] = useState("");
   const [depositAmount, setDepositAmount] = useState("");
-  const [depositResult, setDepositResult] = useState<DepositResponse | null>(null);
+  const [depositResult, setDepositResult] = useState<DepositResponse | null>(
+    null
+  );
 
   // Withdraw state
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawReceiver, setWithdrawReceiver] = useState("");
-  const [withdrawResult, setWithdrawResult] = useState<WithdrawResponse | null>(null);
+  const [withdrawResult, setWithdrawResult] = useState<WithdrawResponse | null>(
+    null
+  );
 
   // New state for additional SDK methods
-  const [userDetails, setUserDetails] = useState<UserDetailsResponse | null>(null);
+  const [userDetails, setUserDetails] = useState<UserDetailsResponse | null>(
+    null
+  );
   const [tvlData, setTvlData] = useState<TVLResponse | null>(null);
   const [volumeData, setVolumeData] = useState<VolumeResponse | null>(null);
-  const [activeWallets, setActiveWallets] = useState<ActiveWalletsResponse | null>(null);
-  const [smartWalletsByEoa, setSmartWalletsByEoa] = useState<SmartWalletsByEOAResponse | null>(null);
+  const [activeWallets, setActiveWallets] =
+    useState<ActiveWalletsResponse | null>(null);
+  const [smartWalletByEoa, setSmartWalletByEoa] =
+    useState<SmartWalletByEOAResponse | null>(null);
   const [firstTopup, setFirstTopup] = useState<FirstTopupResponse | null>(null);
   const [history, setHistory] = useState<HistoryResponse | null>(null);
-  const [onchainEarnings, setOnchainEarnings] = useState<OnchainEarningsResponse | null>(null);
-  const [dailyEarnings, setDailyEarnings] = useState<DailyEarningsResponse | null>(null);
-  const [debankPortfolio, setDebankPortfolio] = useState<DebankPortfolioResponse | null>(null);
-  const [safeOpportunities, setSafeOpportunities] = useState<OpportunitiesResponse | null>(null);
-  const [degenStrategies, setDegenStrategies] = useState<OpportunitiesResponse | null>(null);
-  const [apyHistory, setApyHistory] = useState<DailyApyHistoryResponse | null>(null);
-  const [rebalanceInfo, setRebalanceInfo] = useState<RebalanceInfoResponse | null>(null);
-  const [rebalanceFrequency, setRebalanceFrequency] = useState<RebalanceFrequencyResponse | null>(null);
+  const [onchainEarnings, setOnchainEarnings] =
+    useState<OnchainEarningsResponse | null>(null);
+  const [dailyEarnings, setDailyEarnings] =
+    useState<DailyEarningsResponse | null>(null);
+  const [debankPortfolio, setDebankPortfolio] =
+    useState<DebankPortfolioResponse | null>(null);
+  const [safeOpportunities, setSafeOpportunities] =
+    useState<OpportunitiesResponse | null>(null);
+  const [degenStrategies, setDegenStrategies] =
+    useState<OpportunitiesResponse | null>(null);
+  const [apyHistory, setApyHistory] = useState<DailyApyHistoryResponse | null>(
+    null
+  );
+  const [rebalanceInfo, setRebalanceInfo] =
+    useState<RebalanceInfoResponse | null>(null);
+  const [rebalanceFrequency, setRebalanceFrequency] =
+    useState<RebalanceFrequencyResponse | null>(null);
 
   // Additional input states
   const [earningsStartDate, setEarningsStartDate] = useState("");
   const [earningsEndDate, setEarningsEndDate] = useState("");
-  const [apyHistoryDays, setApyHistoryDays] = useState<"7D" | "14D" | "30D">("7D");
+  const [apyHistoryDays, setApyHistoryDays] = useState<"7D" | "14D" | "30D">(
+    "7D"
+  );
 
   const sdk = useMemo(() => {
     const apiKey = import.meta.env.VITE_ZYFAI_API_KEY;
@@ -165,15 +207,21 @@ function App() {
 
     setStatus("Linking Reown wallet to ZyFAI SDK…");
     sdk
-      .connectAccount(walletClient, walletClient.chain?.id as SupportedChainId | undefined)
+      .connectAccount(
+        walletClient,
+        walletClient.chain?.id as SupportedChainId | undefined
+      )
       .then(() => {
         if (active) setStatus("Wallet ready. You can now fetch ZyFAI data.");
       })
       .catch((error) => {
-        if (active) setStatus(`Failed to connect wallet: ${(error as Error).message}`);
+        if (active)
+          setStatus(`Failed to connect wallet: ${(error as Error).message}`);
       });
 
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [sdk, walletClient, address]);
 
   const ensureSdk = () => {
@@ -232,7 +280,10 @@ function App() {
     try {
       setIsBusy(true);
       setStatus("Resolving deterministic Safe address…");
-      const response = await sdk!.getSmartWalletAddress(address!, selectedChain);
+      const response = await sdk!.getSmartWalletAddress(
+        address!,
+        selectedChain
+      );
       setWalletInfo(response);
       setStatus(
         response.isDeployed
@@ -258,7 +309,10 @@ function App() {
           ? `Safe deployed at ${response.safeAddress}`
           : "Safe deployment reported a failure."
       );
-      const refreshedWallet = await sdk!.getSmartWalletAddress(address!, selectedChain);
+      const refreshedWallet = await sdk!.getSmartWalletAddress(
+        address!,
+        selectedChain
+      );
       setWalletInfo(refreshedWallet);
     } catch (error) {
       setStatus(`Failed to deploy Safe: ${(error as Error).message}`);
@@ -296,13 +350,20 @@ function App() {
       return;
     }
     if (!depositAmount || depositAmount === "0") {
-      setStatus("Please enter a valid deposit amount (in least decimal units).");
+      setStatus(
+        "Please enter a valid deposit amount (in least decimal units)."
+      );
       return;
     }
     try {
       setIsBusy(true);
       setStatus("Depositing funds to ZyFAI…");
-      const response = await sdk!.depositFunds(address!, selectedChain, depositToken, depositAmount);
+      const response = await sdk!.depositFunds(
+        address!,
+        selectedChain,
+        depositToken,
+        depositAmount
+      );
       setDepositResult(response);
       setStatus(
         response.success
@@ -321,7 +382,11 @@ function App() {
     try {
       setIsBusy(true);
       const isFullWithdraw = !withdrawAmount || withdrawAmount === "0";
-      setStatus(isFullWithdraw ? "Withdrawing all funds from ZyFAI…" : `Withdrawing ${withdrawAmount} from ZyFAI…`);
+      setStatus(
+        isFullWithdraw
+          ? "Withdrawing all funds from ZyFAI…"
+          : `Withdrawing ${withdrawAmount} from ZyFAI…`
+      );
       const response = await sdk!.withdrawFunds(
         address!,
         selectedChain,
@@ -373,7 +438,9 @@ function App() {
         smartWallet: walletInfo.address,
         chains: [selectedChain],
       });
-      setStatus(`Profile updated with Smart Wallet: ${truncate(walletInfo.address, 10)}`);
+      setStatus(
+        `Profile updated with Smart Wallet: ${truncate(walletInfo.address, 10)}`
+      );
       // Refresh user details to show updated info
       const response = await sdk!.getUserDetails();
       setUserDetails(response);
@@ -421,7 +488,11 @@ function App() {
       setStatus("Fetching active wallets…");
       const response = await sdk!.getActiveWallets(selectedChain);
       setActiveWallets(response);
-      setStatus(`Loaded ${response.count} active wallets on ${formatChainName(selectedChain)}.`);
+      setStatus(
+        `Loaded ${response.count} active wallets on ${formatChainName(
+          selectedChain
+        )}.`
+      );
     } catch (error) {
       setStatus(`Failed to get active wallets: ${(error as Error).message}`);
     } finally {
@@ -429,16 +500,22 @@ function App() {
     }
   };
 
-  const fetchSmartWalletsByEoa = async () => {
+  const fetchSmartWalletByEoa = async () => {
     if (!ensureWallet()) return;
     try {
       setIsBusy(true);
       setStatus("Fetching smart wallets by EOA…");
-      const response = await sdk!.getSmartWalletsByEOA(address!);
-      setSmartWalletsByEoa(response);
-      setStatus(response.smartWallet ? `Found smart wallet: ${truncate(response.smartWallet)}` : "No smart wallets found for this EOA.");
+      const response = await sdk!.getSmartWalletByEOA(address!);
+      setSmartWalletByEoa(response);
+      setStatus(
+        response.smartWallet
+          ? `Found smart wallet: ${truncate(response.smartWallet)}`
+          : "No smart wallets found for this EOA."
+      );
     } catch (error) {
-      setStatus(`Failed to get smart wallets by EOA: ${(error as Error).message}`);
+      setStatus(
+        `Failed to get smart wallet by EOA: ${(error as Error).message}`
+      );
     } finally {
       setIsBusy(false);
     }
@@ -453,9 +530,16 @@ function App() {
     try {
       setIsBusy(true);
       setStatus("Fetching first topup…");
-      const response = await sdk!.getFirstTopup(walletInfo.address, selectedChain);
+      const response = await sdk!.getFirstTopup(
+        walletInfo.address,
+        selectedChain
+      );
       setFirstTopup(response);
-      setStatus(response.date ? `First topup: ${response.date}` : "No topup history found.");
+      setStatus(
+        response.date
+          ? `First topup: ${response.date}`
+          : "No topup history found."
+      );
     } catch (error) {
       setStatus(`Failed to get first topup: ${(error as Error).message}`);
     } finally {
@@ -472,7 +556,11 @@ function App() {
     try {
       setIsBusy(true);
       setStatus("Fetching transaction history…");
-      const response = await sdk!.getHistory(walletInfo.address, selectedChain, { limit: 20 });
+      const response = await sdk!.getHistory(
+        walletInfo.address,
+        selectedChain,
+        { limit: 20 }
+      );
       setHistory(response);
       setStatus(`Loaded ${response.data.length} history entries.`);
     } catch (error) {
@@ -493,7 +581,9 @@ function App() {
       setStatus("Fetching onchain earnings…");
       const response = await sdk!.getOnchainEarnings(walletInfo.address);
       setOnchainEarnings(response);
-      setStatus(`Onchain earnings loaded: ${formatUsd(response.data.totalEarnings)}`);
+      setStatus(
+        `Onchain earnings loaded: ${formatUsd(response.data.totalEarnings)}`
+      );
     } catch (error) {
       setStatus(`Failed to get onchain earnings: ${(error as Error).message}`);
     } finally {
@@ -512,7 +602,9 @@ function App() {
       setStatus("Calculating onchain earnings (this may take a moment)…");
       const response = await sdk!.calculateOnchainEarnings(walletInfo.address);
       setOnchainEarnings(response);
-      setStatus(`Earnings recalculated: ${formatUsd(response.data.totalEarnings)}`);
+      setStatus(
+        `Earnings recalculated: ${formatUsd(response.data.totalEarnings)}`
+      );
     } catch (error) {
       setStatus(`Failed to calculate earnings: ${(error as Error).message}`);
     } finally {
@@ -571,7 +663,9 @@ function App() {
       setSafeOpportunities(response);
       setStatus(`Loaded ${response.data.length} safe opportunities.`);
     } catch (error) {
-      setStatus(`Failed to get safe opportunities: ${(error as Error).message}`);
+      setStatus(
+        `Failed to get safe opportunities: ${(error as Error).message}`
+      );
     } finally {
       setIsBusy(false);
     }
@@ -601,9 +695,16 @@ function App() {
     try {
       setIsBusy(true);
       setStatus("Fetching APY history…");
-      const response = await sdk!.getDailyApyHistory(walletInfo.address, apyHistoryDays);
+      const response = await sdk!.getDailyApyHistory(
+        walletInfo.address,
+        apyHistoryDays
+      );
       setApyHistory(response);
-      setStatus(`APY history loaded. Average: ${response.averageWeightedApy?.toFixed(2) ?? 0}%`);
+      setStatus(
+        `APY history loaded. Average: ${
+          response.averageWeightedApy?.toFixed(2) ?? 0
+        }%`
+      );
     } catch (error) {
       setStatus(`Failed to get APY history: ${(error as Error).message}`);
     } finally {
@@ -637,9 +738,13 @@ function App() {
       setStatus("Fetching rebalance frequency…");
       const response = await sdk!.getRebalanceFrequency(walletInfo.address);
       setRebalanceFrequency(response);
-      setStatus(`Rebalance tier: ${response.tier}, frequency: ${response.frequency}/day`);
+      setStatus(
+        `Rebalance tier: ${response.tier}, frequency: ${response.frequency}/day`
+      );
     } catch (error) {
-      setStatus(`Failed to get rebalance frequency: ${(error as Error).message}`);
+      setStatus(
+        `Failed to get rebalance frequency: ${(error as Error).message}`
+      );
     } finally {
       setIsBusy(false);
     }
@@ -662,7 +767,7 @@ function App() {
     setTvlData(null);
     setVolumeData(null);
     setActiveWallets(null);
-    setSmartWalletsByEoa(null);
+    setSmartWalletByEoa(null);
     setFirstTopup(null);
     setHistory(null);
     setOnchainEarnings(null);
@@ -704,7 +809,9 @@ function App() {
         </div>
         <div>
           <strong>Connected:</strong>{" "}
-          {address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "No wallet"}
+          {address
+            ? `${address.slice(0, 6)}…${address.slice(-4)}`
+            : "No wallet"}
         </div>
       </section>
 
@@ -747,7 +854,7 @@ function App() {
             Resolve Smart Wallet
           </button>
           <button onClick={deploySafe} disabled={isBusy || !address}>
-            Deploy Safe
+            Deploy Safe Smart Wallet
           </button>
         </div>
 
@@ -763,12 +870,16 @@ function App() {
             </div>
           </div>
         ) : (
-          <p className="empty">Resolve to view the deterministic Safe address.</p>
+          <p className="empty">
+            Resolve to view the deterministic Safe address.
+          </p>
         )}
 
         {deploymentResult && (
           <div className="callout">
-            <div><strong>Last Deployment</strong></div>
+            <div>
+              <strong>Last Deployment</strong>
+            </div>
             <p>
               Status: {deploymentResult.status} · Tx:{" "}
               <a
@@ -787,8 +898,8 @@ function App() {
       <section className="panel">
         <h2>Session Key</h2>
         <p>
-          The demo uses the SDK&apos;s `createSessionKey` helper to fetch config,
-          sign, and register a session in one click.
+          The demo uses the SDK&apos;s `createSessionKey` helper to fetch
+          config, sign, and register a session in one click.
         </p>
         <div className="control-buttons">
           <button onClick={createSessionKey} disabled={isBusy || !address}>
@@ -814,7 +925,7 @@ function App() {
               <span>Activation</span>
               <strong>
                 {sessionInfo.sessionActivation?.isActive ||
-                  userDetails?.user?.hasActiveSessionKey
+                userDetails?.user?.hasActiveSessionKey
                   ? "Active"
                   : "Pending"}
               </strong>
@@ -830,7 +941,8 @@ function App() {
         <h2>User Details</h2>
         <p>
           Fetch authenticated user details including smart wallet, chains, and
-          protocol settings. Update profile to link your Smart Wallet before creating session keys.
+          protocol settings. Update profile to link your Smart Wallet before
+          creating session keys.
         </p>
         <div className="control-buttons">
           <button onClick={fetchUserDetails} disabled={isBusy || !address}>
@@ -839,7 +951,11 @@ function App() {
           <button
             onClick={updateUserProfile}
             disabled={isBusy || !address || !walletInfo?.address}
-            title={!walletInfo?.address ? "Resolve Smart Wallet first" : "Update profile with Smart Wallet address"}
+            title={
+              !walletInfo?.address
+                ? "Resolve Smart Wallet first"
+                : "Update profile with Smart Wallet address"
+            }
           >
             Update Profile
           </button>
@@ -861,7 +977,10 @@ function App() {
             </div>
             <div className="detail-row">
               <span>Chains</span>
-              <strong>{userDetails.user.chains?.map(formatChainName).join(", ") || "None"}</strong>
+              <strong>
+                {userDetails.user.chains?.map(formatChainName).join(", ") ||
+                  "None"}
+              </strong>
             </div>
             <div className="detail-row">
               <span>Strategy</span>
@@ -869,11 +988,15 @@ function App() {
             </div>
             <div className="detail-row">
               <span>Active Session Key</span>
-              <strong>{userDetails.user.hasActiveSessionKey ? "Yes" : "No"}</strong>
+              <strong>
+                {userDetails.user.hasActiveSessionKey ? "Yes" : "No"}
+              </strong>
             </div>
             <div className="detail-row">
               <span>Auto Select Protocols</span>
-              <strong>{userDetails.user.autoSelectProtocols ? "Yes" : "No"}</strong>
+              <strong>
+                {userDetails.user.autoSelectProtocols ? "Yes" : "No"}
+              </strong>
             </div>
             <div className="detail-row">
               <span>Omni Account</span>
@@ -881,7 +1004,9 @@ function App() {
             </div>
             <div className="detail-row">
               <span>Cross-chain Strategy</span>
-              <strong>{userDetails.user.crosschainStrategy ? "Yes" : "No"}</strong>
+              <strong>
+                {userDetails.user.crosschainStrategy ? "Yes" : "No"}
+              </strong>
             </div>
           </div>
         ) : (
@@ -892,7 +1017,10 @@ function App() {
       {/* =============================== TVL & VOLUME =============================== */}
       <section className="panel">
         <h2>Platform Stats (TVL & Volume)</h2>
-        <p>Get total value locked and transaction volume across all ZyFAI accounts.</p>
+        <p>
+          Get total value locked and transaction volume across all ZyFAI
+          accounts.
+        </p>
         <div className="control-buttons">
           <button onClick={fetchTVL} disabled={isBusy}>
             Get TVL
@@ -921,7 +1049,9 @@ function App() {
           {volumeData && (
             <div className="stat-card">
               <span className="stat-label">Total Volume</span>
-              <span className="stat-value">{formatUsd(volumeData.volumeInUSD)}</span>
+              <span className="stat-value">
+                {formatUsd(volumeData.volumeInUSD)}
+              </span>
             </div>
           )}
         </div>
@@ -935,37 +1065,49 @@ function App() {
           <button onClick={fetchActiveWallets} disabled={isBusy}>
             Get Active Wallets
           </button>
-          <button onClick={fetchSmartWalletsByEoa} disabled={isBusy || !address}>
+          <button onClick={fetchSmartWalletByEoa} disabled={isBusy || !address}>
             Get My Smart Wallets
           </button>
         </div>
 
         {activeWallets && (
           <div className="callout">
-            <strong>Active Wallets on {formatChainName(activeWallets.chainId)}</strong>
+            <strong>
+              Active Wallets on {formatChainName(activeWallets.chainId)}
+            </strong>
             <p>Count: {activeWallets.count}</p>
             {activeWallets.wallets.slice(0, 5).map((w, i) => (
               <div key={i}>
-                <code>{truncate(w.smartWallet, 12)}</code> · Chains: {w.chains.map(formatChainName).join(", ")}
+                <code>{truncate(w.smartWallet, 12)}</code> · Chains:{" "}
+                {w.chains.map(formatChainName).join(", ")}
               </div>
             ))}
-            {activeWallets.count > 5 && <p className="empty">...and {activeWallets.count - 5} more</p>}
+            {activeWallets.count > 5 && (
+              <p className="empty">...and {activeWallets.count - 5} more</p>
+            )}
           </div>
         )}
 
-        {smartWalletsByEoa && (
+        {smartWalletByEoa && (
           <div className="detail-grid" style={{ marginTop: "1rem" }}>
             <div className="detail-row">
               <span>EOA</span>
-              <code>{truncate(smartWalletsByEoa.eoa, 10)}</code>
+              <code>{truncate(smartWalletByEoa.eoa, 10)}</code>
             </div>
             <div className="detail-row">
               <span>Smart Wallet</span>
-              <code>{smartWalletsByEoa.smartWallet ? truncate(smartWalletsByEoa.smartWallet, 10) : "None"}</code>
+              <code>
+                {smartWalletByEoa.smartWallet
+                  ? truncate(smartWalletByEoa.smartWallet, 10)
+                  : "None"}
+              </code>
             </div>
             <div className="detail-row">
               <span>Chains</span>
-              <strong>{smartWalletsByEoa.chains.map(formatChainName).join(", ") || "None"}</strong>
+              <strong>
+                {smartWalletByEoa.chains.map(formatChainName).join(", ") ||
+                  "None"}
+              </strong>
             </div>
           </div>
         )}
@@ -1026,9 +1168,12 @@ function App() {
 
         {depositResult && (
           <div className="callout">
-            <div><strong>Last Deposit</strong></div>
+            <div>
+              <strong>Last Deposit</strong>
+            </div>
             <p>
-              Status: {depositResult.status} · Amount: {depositResult.amount} · Tx:{" "}
+              Status: {depositResult.status} · Amount: {depositResult.amount} ·
+              Tx:{" "}
               <a
                 href={getExplorerUrl(selectedChain, depositResult.txHash)}
                 target="_blank"
@@ -1079,7 +1224,9 @@ function App() {
 
         {withdrawResult && (
           <div className="callout">
-            <div><strong>Last Withdraw</strong></div>
+            <div>
+              <strong>Last Withdraw</strong>
+            </div>
             <p>
               Type: {withdrawResult.type} · Amount: {withdrawResult.amount} ·
               Receiver: {truncate(withdrawResult.receiver, 8)} · Tx:{" "}
@@ -1098,12 +1245,21 @@ function App() {
       {/* =============================== FIRST TOPUP & HISTORY =============================== */}
       <section className="panel">
         <h2>First Topup & History</h2>
-        <p>Get the first deposit date and transaction history for your smart wallet.</p>
+        <p>
+          Get the first deposit date and transaction history for your smart
+          wallet.
+        </p>
         <div className="control-buttons">
-          <button onClick={fetchFirstTopup} disabled={isBusy || !walletInfo?.address}>
+          <button
+            onClick={fetchFirstTopup}
+            disabled={isBusy || !walletInfo?.address}
+          >
             Get First Topup
           </button>
-          <button onClick={fetchHistory} disabled={isBusy || !walletInfo?.address}>
+          <button
+            onClick={fetchHistory}
+            disabled={isBusy || !walletInfo?.address}
+          >
             Get History
           </button>
         </div>
@@ -1151,10 +1307,16 @@ function App() {
         <h2>Onchain Earnings</h2>
         <p>Get and calculate earnings for your smart wallet.</p>
         <div className="control-buttons">
-          <button onClick={fetchOnchainEarnings} disabled={isBusy || !walletInfo?.address}>
+          <button
+            onClick={fetchOnchainEarnings}
+            disabled={isBusy || !walletInfo?.address}
+          >
             Get Onchain Earnings
           </button>
-          <button onClick={calculateEarnings} disabled={isBusy || !walletInfo?.address}>
+          <button
+            onClick={calculateEarnings}
+            disabled={isBusy || !walletInfo?.address}
+          >
             Calculate/Refresh Earnings
           </button>
         </div>
@@ -1171,12 +1333,16 @@ function App() {
             </div>
             <div>
               <span>Lifetime (Realized)</span>
-              <strong>{formatUsd(onchainEarnings.data.lifetimeEarnings)}</strong>
+              <strong>
+                {formatUsd(onchainEarnings.data.lifetimeEarnings)}
+              </strong>
             </div>
             {onchainEarnings.data.unrealizedEarnings !== undefined && (
               <div>
                 <span>Unrealized</span>
-                <strong>{formatUsd(onchainEarnings.data.unrealizedEarnings)}</strong>
+                <strong>
+                  {formatUsd(onchainEarnings.data.unrealizedEarnings)}
+                </strong>
               </div>
             )}
           </div>
@@ -1185,20 +1351,25 @@ function App() {
         {onchainEarnings?.data?.currentEarningsByChain && (
           <div className="detail-grid" style={{ marginTop: "1rem" }}>
             <div className="detail-row">
-              <span><strong>Earnings by Chain</strong></span>
+              <span>
+                <strong>Earnings by Chain</strong>
+              </span>
             </div>
-            {Object.entries(onchainEarnings.data.currentEarningsByChain).map(([chain, amount]) => (
-              <div key={chain} className="detail-row">
-                <span>{formatChainName(chain)}</span>
-                <strong>{formatUsd(amount)}</strong>
-              </div>
-            ))}
+            {Object.entries(onchainEarnings.data.currentEarningsByChain).map(
+              ([chain, amount]) => (
+                <div key={chain} className="detail-row">
+                  <span>{formatChainName(chain)}</span>
+                  <strong>{formatUsd(amount)}</strong>
+                </div>
+              )
+            )}
           </div>
         )}
 
         {onchainEarnings?.data?.lastCheckTimestamp && (
           <p className="empty" style={{ marginTop: "1rem" }}>
-            Last updated: {new Date(onchainEarnings.data.lastCheckTimestamp).toLocaleString()}
+            Last updated:{" "}
+            {new Date(onchainEarnings.data.lastCheckTimestamp).toLocaleString()}
           </p>
         )}
       </section>
@@ -1226,7 +1397,10 @@ function App() {
           </label>
         </div>
         <div className="control-buttons" style={{ marginTop: "1rem" }}>
-          <button onClick={fetchDailyEarnings} disabled={isBusy || !walletInfo?.address}>
+          <button
+            onClick={fetchDailyEarnings}
+            disabled={isBusy || !walletInfo?.address}
+          >
             Get Daily Earnings
           </button>
         </div>
@@ -1240,7 +1414,9 @@ function App() {
                   <div>
                     <strong>{entry.snapshot_date}</strong>
                   </div>
-                  <small>Daily Delta: {formatUsd(entry.daily_total_delta)}</small>
+                  <small>
+                    Daily Delta: {formatUsd(entry.daily_total_delta)}
+                  </small>
                 </header>
                 <div className="detail-grid">
                   <div className="detail-row">
@@ -1271,7 +1447,9 @@ function App() {
             <span>Period</span>
             <select
               value={apyHistoryDays}
-              onChange={(e) => setApyHistoryDays(e.target.value as "7D" | "14D" | "30D")}
+              onChange={(e) =>
+                setApyHistoryDays(e.target.value as "7D" | "14D" | "30D")
+              }
             >
               <option value="7D">7 Days</option>
               <option value="14D">14 Days</option>
@@ -1280,7 +1458,10 @@ function App() {
           </label>
         </div>
         <div className="control-buttons" style={{ marginTop: "1rem" }}>
-          <button onClick={fetchApyHistory} disabled={isBusy || !walletInfo?.address}>
+          <button
+            onClick={fetchApyHistory}
+            disabled={isBusy || !walletInfo?.address}
+          >
             Get APY History
           </button>
         </div>
@@ -1289,7 +1470,9 @@ function App() {
           <div className="stats-grid">
             <div className="stat-card">
               <span className="stat-label">Average Weighted APY</span>
-              <span className="stat-value">{apyHistory.averageWeightedApy?.toFixed(2) ?? 0}%</span>
+              <span className="stat-value">
+                {apyHistory.averageWeightedApy?.toFixed(2) ?? 0}%
+              </span>
             </div>
             <div className="stat-card">
               <span className="stat-label">Total Days</span>
@@ -1301,14 +1484,20 @@ function App() {
         {apyHistory?.history && Object.keys(apyHistory.history).length > 0 && (
           <div className="list" style={{ marginTop: "1rem" }}>
             <strong>Daily APY</strong>
-            {Object.entries(apyHistory.history).slice(0, 10).map(([date, entry]) => (
-              <article key={date}>
-                <header>
-                  <div><strong>{date}</strong></div>
-                  <small>APY: {(entry.apy ?? entry.weightedApy ?? 0).toFixed(2)}%</small>
-                </header>
-              </article>
-            ))}
+            {Object.entries(apyHistory.history)
+              .slice(0, 10)
+              .map(([date, entry]) => (
+                <article key={date}>
+                  <header>
+                    <div>
+                      <strong>{date}</strong>
+                    </div>
+                    <small>
+                      APY: {(entry.apy ?? entry.weightedApy ?? 0).toFixed(2)}%
+                    </small>
+                  </header>
+                </article>
+              ))}
           </div>
         )}
       </section>
@@ -1316,9 +1505,15 @@ function App() {
       {/* =============================== PORTFOLIO =============================== */}
       <section className="panel">
         <h2>Debank Portfolio</h2>
-        <p>Get multi-chain portfolio data from Debank (may require authorization).</p>
+        <p>
+          Get multi-chain portfolio data from Debank (may require
+          authorization).
+        </p>
         <div className="control-buttons">
-          <button onClick={fetchDebankPortfolio} disabled={isBusy || !walletInfo?.address}>
+          <button
+            onClick={fetchDebankPortfolio}
+            disabled={isBusy || !walletInfo?.address}
+          >
             Get Debank Portfolio
           </button>
         </div>
@@ -1327,21 +1522,30 @@ function App() {
           <>
             {(() => {
               // Calculate total from chain data if totalValueUsd is not provided
-              const chainEntries = debankPortfolio.chains ? Object.entries(debankPortfolio.chains) : [];
-              const calculatedTotal = chainEntries.reduce((sum, [, chainData]) => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const data = chainData as any;
-                const value = data.totalValueUsd ?? data.summary?.totalValue ?? 0;
-                return sum + (typeof value === 'number' ? value : 0);
-              }, 0);
-              const totalValue = debankPortfolio.totalValueUsd || calculatedTotal;
+              const chainEntries = debankPortfolio.chains
+                ? Object.entries(debankPortfolio.chains)
+                : [];
+              const calculatedTotal = chainEntries.reduce(
+                (sum, [, chainData]) => {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const data = chainData as any;
+                  const value =
+                    data.totalValueUsd ?? data.summary?.totalValue ?? 0;
+                  return sum + (typeof value === "number" ? value : 0);
+                },
+                0
+              );
+              const totalValue =
+                debankPortfolio.totalValueUsd || calculatedTotal;
 
               return (
                 <>
                   <div className="stats-grid">
                     <div className="stat-card">
                       <span className="stat-label">Total Portfolio Value</span>
-                      <span className="stat-value">{formatUsd(totalValue)}</span>
+                      <span className="stat-value">
+                        {formatUsd(totalValue)}
+                      </span>
                     </div>
                   </div>
                   {chainEntries.length > 0 && (
@@ -1353,13 +1557,18 @@ function App() {
                         // 2. { tokens, summary: { totalValue } } - debank format where chainKey is the chain name
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         const data = chainData as any;
-                        const chainName = data.chainName || chainKey.charAt(0).toUpperCase() + chainKey.slice(1);
-                        const chainValue = data.totalValueUsd ?? data.summary?.totalValue ?? 0;
+                        const chainName =
+                          data.chainName ||
+                          chainKey.charAt(0).toUpperCase() + chainKey.slice(1);
+                        const chainValue =
+                          data.totalValueUsd ?? data.summary?.totalValue ?? 0;
 
                         return (
                           <article key={chainKey}>
                             <header>
-                              <div><strong>{chainName}</strong></div>
+                              <div>
+                                <strong>{chainName}</strong>
+                              </div>
                               <small>{formatUsd(chainValue)}</small>
                             </header>
                           </article>
@@ -1389,11 +1598,14 @@ function App() {
 
         {safeOpportunities && safeOpportunities.data.length > 0 && (
           <div className="list" style={{ marginTop: "1rem" }}>
-            <strong>Safe Opportunities ({safeOpportunities.data.length})</strong>
+            <strong>
+              Safe Opportunities ({safeOpportunities.data.length})
+            </strong>
             {safeOpportunities.data.slice(0, 5).map((opp) => {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const data = opp as any;
-              const protocolName = data.protocolName || data.protocol_name || "Protocol";
+              const protocolName =
+                data.protocolName || data.protocol_name || "Protocol";
               const poolName = data.poolName || data.pool_name || "Pool";
               const apy = data.apy || data.pool_apy || data.combined_apy || 0;
               const chainId = data.chainId || data.chain_id;
@@ -1407,9 +1619,7 @@ function App() {
                     </div>
                     <small>APY: {Number(apy).toFixed(2)}%</small>
                   </header>
-                  <div>
-                    Chain: {formatChainName(chainId)}
-                  </div>
+                  <div>Chain: {formatChainName(chainId)}</div>
                 </article>
               );
             })}
@@ -1422,7 +1632,8 @@ function App() {
             {degenStrategies.data.slice(0, 5).map((strat) => {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const data = strat as any;
-              const protocolName = data.protocolName || data.protocol_name || "Protocol";
+              const protocolName =
+                data.protocolName || data.protocol_name || "Protocol";
               const poolName = data.poolName || data.pool_name || "Pool";
               const apy = data.apy || data.pool_apy || data.combined_apy || 0;
               const chainId = data.chainId || data.chain_id;
@@ -1456,7 +1667,10 @@ function App() {
           <button onClick={fetchRebalanceInfo} disabled={isBusy}>
             Get Rebalance Info
           </button>
-          <button onClick={fetchRebalanceFrequency} disabled={isBusy || !walletInfo?.address}>
+          <button
+            onClick={fetchRebalanceFrequency}
+            disabled={isBusy || !walletInfo?.address}
+          >
             Get Rebalance Frequency
           </button>
         </div>
@@ -1487,25 +1701,40 @@ function App() {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const rebalance = r as any;
               const chainId = rebalance.chainId ?? rebalance.chain_id;
-              const totalRebalances = rebalance.totalRebalances ?? rebalance.total_rebalances;
-              const sameChainRebalances = rebalance.sameChainRebalances ?? rebalance.same_chain_rebalances;
-              const crossChainRebalances = rebalance.crossChainRebalances ?? rebalance.cross_chain_rebalances;
+              const totalRebalances =
+                rebalance.totalRebalances ?? rebalance.total_rebalances;
+              const sameChainRebalances =
+                rebalance.sameChainRebalances ??
+                rebalance.same_chain_rebalances;
+              const crossChainRebalances =
+                rebalance.crossChainRebalances ??
+                rebalance.cross_chain_rebalances;
               const avgApy = rebalance.averageApy ?? rebalance.average_apy;
 
               return (
                 <article key={r.id || idx}>
                   <header>
                     <div>
-                      <strong>{chainId ? formatChainName(chainId) : "Multi-chain"}</strong>
-                      {totalRebalances != null && <span> · {totalRebalances} rebalances</span>}
+                      <strong>
+                        {chainId ? formatChainName(chainId) : "Multi-chain"}
+                      </strong>
+                      {totalRebalances != null && (
+                        <span> · {totalRebalances} rebalances</span>
+                      )}
                     </div>
-                    <small>{r.timestamp ? new Date(r.timestamp).toLocaleString() : "N/A"}</small>
+                    <small>
+                      {r.timestamp
+                        ? new Date(r.timestamp).toLocaleString()
+                        : "N/A"}
+                    </small>
                   </header>
                   <div className="detail-grid" style={{ marginTop: "0.5rem" }}>
                     {rebalance.amount != null && (
                       <div className="detail-row">
                         <span>Amount</span>
-                        <strong>{formatUsd(Number(rebalance.amount) / 1e6)}</strong>
+                        <strong>
+                          {formatUsd(Number(rebalance.amount) / 1e6)}
+                        </strong>
                       </div>
                     )}
                     {avgApy != null && (
@@ -1520,15 +1749,18 @@ function App() {
                         <strong>{String(sameChainRebalances)}</strong>
                       </div>
                     )}
-                    {crossChainRebalances != null && Number(crossChainRebalances) > 0 && (
-                      <div className="detail-row">
-                        <span>Cross-chain</span>
-                        <strong>{String(crossChainRebalances)}</strong>
-                      </div>
-                    )}
+                    {crossChainRebalances != null &&
+                      Number(crossChainRebalances) > 0 && (
+                        <div className="detail-row">
+                          <span>Cross-chain</span>
+                          <strong>{String(crossChainRebalances)}</strong>
+                        </div>
+                      )}
                   </div>
                   <div style={{ marginTop: "0.5rem" }}>
-                    {rebalance.isCrossChain && <span className="badge">Cross-chain</span>}
+                    {rebalance.isCrossChain && (
+                      <span className="badge">Cross-chain</span>
+                    )}
                   </div>
                 </article>
               );
@@ -1582,10 +1814,13 @@ function App() {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const data = bundle as any;
               // Chain can be at bundle level or derived from first position
-              const chainName = data.chain ||
-                (data.positions?.[0]?.chain) ||
+              const chainName =
+                data.chain ||
+                data.positions?.[0]?.chain ||
                 (data.chainId ? formatChainName(data.chainId) : null) ||
-                (data.positions?.[0]?.chain_id ? formatChainName(data.positions[0].chain_id) : "Multi-chain");
+                (data.positions?.[0]?.chain_id
+                  ? formatChainName(data.positions[0].chain_id)
+                  : "Multi-chain");
 
               return (
                 <article key={`${bundle.strategy}-${index}`}>
@@ -1601,19 +1836,35 @@ function App() {
                     const pos = slot as any;
                     const apy = pos.pool_apy ?? pos.apy;
                     const tvl = pos.pool_tvl ?? pos.tvl;
-                    const underlying = pos.underlyingAmount ?? pos.underlying_amount ?? pos.amount ?? "0";
+                    const underlying =
+                      pos.underlyingAmount ??
+                      pos.underlying_amount ??
+                      pos.amount ??
+                      "0";
 
                     return (
-                      <div key={`${slot.protocol_id}-${slotIndex}`} className="slot">
+                      <div
+                        key={`${slot.protocol_id}-${slotIndex}`}
+                        className="slot"
+                      >
                         <div>
-                          <strong>{slot.protocol_name ?? slot.protocol_id ?? "Protocol"}</strong>
+                          <strong>
+                            {slot.protocol_name ??
+                              slot.protocol_id ??
+                              "Protocol"}
+                          </strong>
                           <span> | {slot.pool ?? "Pool n/a"}</span>
                         </div>
                         <ul>
                           <li>Token: {slot.token_symbol ?? "Unknown"}</li>
                           <li>Underlying: {underlying}</li>
-                          <li>APY: {apy != null ? `${Number(apy).toFixed(2)}%` : "n/a"}</li>
-                          <li>Pool TVL: {tvl != null ? formatUsd(tvl) : "n/a"}</li>
+                          <li>
+                            APY:{" "}
+                            {apy != null ? `${Number(apy).toFixed(2)}%` : "n/a"}
+                          </li>
+                          <li>
+                            Pool TVL: {tvl != null ? formatUsd(tvl) : "n/a"}
+                          </li>
                         </ul>
                       </div>
                     );
