@@ -266,8 +266,13 @@ function App() {
       setIsBusy(true);
       setStatus("Fetching ZyFAI positions…");
       const response = await sdk!.getPositions(address!, selectedChain);
+      console.log("response", response);
       setPositions(response.positions ?? []);
-      setStatus(`Loaded ${response.positions.length} position bundles.`);
+      if (response.positions.some((position) => position.pool === null || position.pool === undefined)) {
+        setStatus("No positions found.");
+      } else {
+        setStatus(`Loaded ${response.positions.length} position bundles.`);
+      }
     } catch (error) {
       setStatus(`Failed to load positions: ${(error as Error).message}`);
     } finally {
@@ -840,6 +845,112 @@ function App() {
             Fetch Positions
           </button>
         </div>
+      </section>
+        {/* =============================== PROTOCOLS =============================== */}
+        <section className="panel">
+        <h2>Protocols</h2>
+        {protocols.length === 0 ? (
+          <p className="empty">No protocol data loaded yet.</p>
+        ) : (
+          <div className="list">
+            {protocols.map((protocol) => {
+              const poolCount = protocol.pools?.length ?? 0;
+              return (
+                <article key={protocol.id}>
+                  <header>
+                    <div>
+                      <strong>{protocol.name}</strong>
+                      <span> | {protocol.type}</span>
+                    </div>
+                    <small>
+                      Chains: {protocol.chains.map(formatChainName).join(", ")}
+                      {poolCount > 0 && <span> | Pools: {poolCount}</span>}
+                    </small>
+                  </header>
+                  <p>{protocol.description ?? "No description provided."}</p>
+                  {protocol.website && (
+                    <a href={protocol.website} target="_blank" rel="noreferrer">
+                      {protocol.website}
+                    </a>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* =============================== POSITIONS =============================== */}
+      <section className="panel">
+        <h2>Positions</h2>
+        {positions.length === 0 ? (
+          <p className="empty">No active ZyFAI positions detected.</p>
+        ) : (
+          <div className="list">
+            {positions.map((bundle, index) => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const data = bundle as any;
+              // Chain can be at bundle level or derived from first position
+              const chainName =
+                data.chain ||
+                data.positions?.[0]?.chain ||
+                (data.chainId ? formatChainName(data.chainId) : null) ||
+                (data.positions?.[0]?.chain_id
+                  ? formatChainName(data.positions[0].chain_id)
+                  : "Multi-chain");
+
+              return (
+                <article key={`${bundle.strategy}-${index}`}>
+                  <header>
+                    <div>
+                      <strong>{bundle.strategy ?? "Unknown strategy"}</strong>
+                      <span> | {chainName}</span>
+                    </div>
+                    <small>{bundle.smartWallet}</small>
+                  </header>
+                  {(bundle.positions ?? []).map((slot, slotIndex) => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const pos = slot as any;
+                    const apy = pos.pool_apy ?? pos.apy;
+                    const tvl = pos.pool_tvl ?? pos.tvl;
+                    const underlying =
+                      pos.underlyingAmount ??
+                      pos.underlying_amount ??
+                      pos.amount ??
+                      "0";
+
+                    return (
+                      <div
+                        key={`${slot.protocol_id}-${slotIndex}`}
+                        className="slot"
+                      >
+                        <div>
+                          <strong>
+                            {slot.protocol_name ??
+                              slot.protocol_id ??
+                              "Protocol"}
+                          </strong>
+                          <span> | {slot.pool ?? "Pool n/a"}</span>
+                        </div>
+                        <ul>
+                          <li>Token: {slot.token_symbol ?? "Unknown"}</li>
+                          <li>Underlying: {underlying}</li>
+                          <li>
+                            APY:{" "}
+                            {apy != null ? `${Number(apy).toFixed(2)}%` : "n/a"}
+                          </li>
+                          <li>
+                            Pool TVL: {tvl != null ? formatUsd(tvl) : "n/a"}
+                          </li>
+                        </ul>
+                      </div>
+                    );
+                  })}
+                </article>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* =============================== SMART WALLET =============================== */}
@@ -1755,113 +1866,6 @@ function App() {
                       <span className="badge">Cross-chain</span>
                     )}
                   </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      {/* =============================== PROTOCOLS =============================== */}
-      <section className="panel">
-        <h2>Protocols</h2>
-        {protocols.length === 0 ? (
-          <p className="empty">No protocol data loaded yet.</p>
-        ) : (
-          <div className="list">
-            {protocols.map((protocol) => {
-              const poolCount = protocol.pools?.length ?? 0;
-              return (
-                <article key={protocol.id}>
-                  <header>
-                    <div>
-                      <strong>{protocol.name}</strong>
-                      <span> | {protocol.type}</span>
-                    </div>
-                    <small>
-                      Chains: {protocol.chains.map(formatChainName).join(", ")}
-                      {poolCount > 0 && <span> | Pools: {poolCount}</span>}
-                    </small>
-                  </header>
-                  <p>{protocol.description ?? "No description provided."}</p>
-                  {protocol.website && (
-                    <a href={protocol.website} target="_blank" rel="noreferrer">
-                      {protocol.website}
-                    </a>
-                  )}
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      {/* =============================== POSITIONS =============================== */}
-      <section className="panel">
-        <h2>Positions</h2>
-        {positions.length === 0 ? (
-          <p className="empty">No active ZyFAI positions detected.</p>
-        ) : (
-          <div className="list">
-            {positions.map((bundle, index) => {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const data = bundle as any;
-              // Chain can be at bundle level or derived from first position
-              const chainName =
-                data.chain ||
-                data.positions?.[0]?.chain ||
-                (data.chainId ? formatChainName(data.chainId) : null) ||
-                (data.positions?.[0]?.chain_id
-                  ? formatChainName(data.positions[0].chain_id)
-                  : "Multi-chain");
-
-              return (
-                <article key={`${bundle.strategy}-${index}`}>
-                  <header>
-                    <div>
-                      <strong>{bundle.strategy ?? "Unknown strategy"}</strong>
-                      <span> | {chainName}</span>
-                    </div>
-                    <small>{bundle.smartWallet}</small>
-                  </header>
-                  {(bundle.positions ?? []).map((slot, slotIndex) => {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const pos = slot as any;
-                    const apy = pos.pool_apy ?? pos.apy;
-                    const tvl = pos.pool_tvl ?? pos.tvl;
-                    const underlying =
-                      pos.underlyingAmount ??
-                      pos.underlying_amount ??
-                      pos.amount ??
-                      "0";
-
-                    return (
-                      <div
-                        key={`${slot.protocol_id}-${slotIndex}`}
-                        className="slot"
-                      >
-                        <div>
-                          <strong>
-                            {slot.protocol_name ??
-                              slot.protocol_id ??
-                              "Protocol"}
-                          </strong>
-                          <span> | {slot.pool ?? "Pool n/a"}</span>
-                        </div>
-                        <ul>
-                          <li>Token: {slot.token_symbol ?? "Unknown"}</li>
-                          <li>Underlying: {underlying}</li>
-                          <li>
-                            APY:{" "}
-                            {apy != null ? `${Number(apy).toFixed(2)}%` : "n/a"}
-                          </li>
-                          <li>
-                            Pool TVL: {tvl != null ? formatUsd(tvl) : "n/a"}
-                          </li>
-                        </ul>
-                      </div>
-                    );
-                  })}
                 </article>
               );
             })}
