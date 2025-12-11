@@ -53,7 +53,7 @@ const CHAIN_OPTIONS: { id: SupportedChainId; label: string }[] = [
 const isSupportedChain = (value: number): value is SupportedChainId =>
   CHAIN_OPTIONS.some((chain) => chain.id === value);
 
-const defaultChainEnv = Number(import.meta.env.VITE_DEFAULT_CHAIN_ID ?? 8453);
+const defaultChainEnv = Number(8453);
 const DEFAULT_CHAIN = isSupportedChain(defaultChainEnv)
   ? (defaultChainEnv as SupportedChainId)
   : (8453 as SupportedChainId);
@@ -268,7 +268,12 @@ function App() {
       const response = await sdk!.getPositions(address!, selectedChain);
       console.log("response", response);
       setPositions(response.positions ?? []);
-      if (response.positions.some((position) => position.pool === null || position.pool === undefined)) {
+      if (
+        response.positions.some(
+          (position) =>
+            position.positions === null || position.positions?.length === 0
+        )
+      ) {
         setStatus("No positions found.");
       } else {
         setStatus(`Loaded ${response.positions.length} position bundles.`);
@@ -846,8 +851,8 @@ function App() {
           </button>
         </div>
       </section>
-        {/* =============================== PROTOCOLS =============================== */}
-        <section className="panel">
+      {/* =============================== PROTOCOLS =============================== */}
+      <section className="panel">
         <h2>Protocols</h2>
         {protocols.length === 0 ? (
           <p className="empty">No protocol data loaded yet.</p>
@@ -1020,10 +1025,6 @@ function App() {
 
         {sessionInfo ? (
           <div className="detail-grid">
-            <div className="detail-row">
-              <span>Signer</span>
-              <code>{sessionInfo.sessionKeyAddress}</code>
-            </div>
             <div className="detail-row">
               <span>User ID</span>
               <strong>{sessionInfo.userId ?? "n/a"}</strong>
