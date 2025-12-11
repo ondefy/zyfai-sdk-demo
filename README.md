@@ -1,22 +1,23 @@
 # ZyFAI SDK Demo - Secure B2B Integration Guide
 
-This demo application shows how to securely integrate with ZyFAI APIs for B2B clients using **Vercel Serverless Functions**. API keys are stored server-side and never exposed to the browser.
+This demo application shows how to **securely** integrate with ZyFAI APIs for B2B clients. **ALL API keys** (including the Bundler API key for Safe operations) are stored server-side and never exposed to the browser.
 
 ## 🔐 Security Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                    VERCEL SERVERLESS ARCHITECTURE                           │
+│                 COMPLETE SERVER-SIDE SDK ARCHITECTURE                        │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
-│  ┌─────────────┐        ┌─────────────────────┐        ┌────────────────┐  │
-│  │   Browser   │  ───►  │  Vercel Serverless  │  ───►  │   ZyFAI APIs   │  │
-│  │  (Frontend) │        │  Functions (/api/*) │        │                │  │
-│  └─────────────┘        └─────────────────────┘        └────────────────┘  │
+│  ┌─────────────┐        ┌─────────────────────────┐        ┌─────────────┐ │
+│  │   Browser   │  ───►  │  Vercel Serverless      │  ───►  │ ZyFAI APIs  │ │
+│  │  (Frontend) │        │  (SDK initialized here) │        │ + Pimlico   │ │
+│  └─────────────┘        └─────────────────────────┘        └─────────────┘ │
 │                                                                              │
-│  • No API keys in browser        • Reads env vars           • Execution API │
-│  • Same-origin /api calls        • Adds x-api-key header    • Data API      │
-│  • Wallet signing only           • Proxies requests                         │
+│  • NO API keys in browser        • SDK initialized with ALL keys            │
+│  • Calls /api/sdk/* routes       • ZYFAI_API_KEY (Execution)               │
+│  • Wallet signing only           • ZYFAI_DATA_API_KEY (Data)               │
+│                                   • BUNDLER_API_KEY (Pimlico/Safe)          │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -26,19 +27,25 @@ This demo application shows how to securely integrate with ZyFAI APIs for B2B cl
 ```
 zyfai-sdk-demo/
 ├── api/                              # Vercel Serverless Functions
-│   ├── health.ts                     # Health check endpoint
-│   └── proxy/
-│       ├── execution/[...path].ts    # Execution API proxy
-│       └── data/[...path].ts         # Data API proxy
+│   ├── health.ts                     # Health check (shows config status)
+│   ├── lib/
+│   │   └── sdk-service.ts            # Server-side SDK initialization
+│   └── sdk/                          # SDK operation endpoints
+│       ├── protocols.ts              # GET /api/sdk/protocols
+│       ├── positions.ts              # GET /api/sdk/positions
+│       ├── smart-wallet.ts           # GET /api/sdk/smart-wallet
+│       ├── deploy-safe.ts            # POST /api/sdk/deploy-safe
+│       ├── tvl.ts                    # GET /api/sdk/tvl
+│       ├── volume.ts                 # GET /api/sdk/volume
+│       ├── earnings.ts               # GET/POST /api/sdk/earnings
+│       └── opportunities.ts          # GET /api/sdk/opportunities
 │
 ├── src/                              # Frontend application
-│   ├── AppSecure.tsx                 # Secure demo (recommended)
-│   ├── App.tsx                       # Original demo (API keys exposed)
+│   ├── AppSecure.tsx                 # Main secure demo
 │   └── hooks/
-│       └── useSecureApi.ts           # Hook for secure API calls
+│       └── useSecureSdk.ts           # Hook for secure SDK operations
 │
 ├── vercel.json                       # Vercel configuration
-├── env.example                       # Frontend environment template
 └── README.md                         # This file
 ```
 
@@ -52,112 +59,101 @@ pnpm install
 
 ### 2. Configure Environment Variables
 
-**For Local Development (`vercel dev`):**
-
-Create a `.env` file (or use Vercel CLI to link your project):
+Create a `.env` file with ALL required API keys:
 
 ```bash
-# .env - Local development only
+# Server-side API keys (KEEP SECRET!)
 ZYFAI_API_KEY=zyfai_your_execution_api_key_here
 ZYFAI_DATA_API_KEY=zyfai_your_data_api_key_here
+BUNDLER_API_KEY=your_pimlico_bundler_key_here
+
+# Frontend-only (safe to expose)
 VITE_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
 ```
-
-**For Production (Vercel Dashboard):**
-
-Set these environment variables in your Vercel project settings:
-
-- `ZYFAI_API_KEY` - Your ZyFAI Execution API key
-- `ZYFAI_DATA_API_KEY` - Your ZyFAI Data API key
 
 ### 3. Run Development Server
 
 ```bash
 pnpm dev
-# App runs at http://localhost:3000 (default Vercel dev port)
+# Uses vercel dev - runs frontend + serverless functions together
 ```
-
-This uses `vercel dev` which runs both the frontend and serverless functions together.
 
 ## 🛡️ How It Works
 
-### API Key Flow
+### Complete Flow
 
-1. **User action** → Frontend makes request to `/api/proxy/execution/*` or `/api/proxy/data/*`
-2. **Serverless function** → Reads `ZYFAI_API_KEY` from environment, adds `x-api-key` header
-3. **Serverless function** → Forwards request to ZyFAI API
-4. **ZyFAI API** → Processes request, returns response
-5. **Serverless function** → Returns response to frontend
-6. **Frontend** → Displays data to user
+1. **Frontend** makes request to `/api/sdk/deploy-safe`
+2. **Serverless function** initializes SDK with `ZYFAI_API_KEY`, `ZYFAI_DATA_API_KEY`, `BUNDLER_API_KEY`
+3. **Server-side SDK** calls ZyFAI APIs and Pimlico bundler
+4. **Response** returned to frontend (no keys exposed)
 
 ### Code Example
 
 ```tsx
-// Frontend code - NO API KEYS VISIBLE!
-import { useSecureApi } from "./hooks/useSecureApi";
+// Frontend code - ZERO API KEYS!
+import { useSecureSdk } from "./hooks/useSecureSdk";
 
 function MyComponent() {
-  const { dataApi, executionApi, isProxyHealthy } = useSecureApi();
+  const { sdk, isReady, health } = useSecureSdk();
 
-  const fetchEarnings = async (walletAddress: string) => {
-    // This calls /api/proxy/data/* (same origin)
-    // The serverless function adds the API key
-    const response = await dataApi.get(
-      `/usercheck/onchain-earnings?walletAddress=${walletAddress}`
-    );
-    return response;
-  };
+  // Check if all keys are configured
+  if (!isReady) {
+    return <div>SDK not configured</div>;
+  }
 
-  const fetchProtocols = async (chainId: number) => {
-    // This calls /api/proxy/execution/* (same origin)
-    const response = await executionApi.get(`/protocols?chainId=${chainId}`);
-    return response;
-  };
+  // All operations use server-side SDK with full credentials
+  const protocols = await sdk.getProtocols(8453);
+  const positions = await sdk.getPositions(address, 8453);
+  const wallet = await sdk.getSmartWallet(address, 8453);
+
+  // Even Safe deployment uses server-side BUNDLER_API_KEY!
+  const result = await sdk.deploySafe(address, 8453);
 }
 ```
 
-## 📡 Serverless Function Routes
+## 📡 API Endpoints
 
-| Frontend Route           | Serverless Function       | Target ZyFAI API                          |
-| ------------------------ | ------------------------- | ----------------------------------------- |
-| `/api/proxy/execution/*` | Adds `ZYFAI_API_KEY`      | `https://staging-api.zyf.ai/api/v1/*`     |
-| `/api/proxy/data/*`      | Adds `ZYFAI_DATA_API_KEY` | `https://staging-defiapi.zyf.ai/api/v2/*` |
-| `/api/health`            | Returns config status     | N/A                                       |
+| Endpoint                 | Method | Description                    |
+| ------------------------ | ------ | ------------------------------ |
+| `/api/health`            | GET    | Check SDK configuration status |
+| `/api/sdk/protocols`     | GET    | Get available protocols        |
+| `/api/sdk/positions`     | GET    | Get user positions             |
+| `/api/sdk/smart-wallet`  | GET    | Get smart wallet address       |
+| `/api/sdk/deploy-safe`   | POST   | Deploy Safe (uses bundler key) |
+| `/api/sdk/tvl`           | GET    | Get platform TVL               |
+| `/api/sdk/volume`        | GET    | Get platform volume            |
+| `/api/sdk/earnings`      | GET    | Get onchain earnings           |
+| `/api/sdk/earnings`      | POST   | Calculate earnings             |
+| `/api/sdk/opportunities` | GET    | Get yield opportunities        |
 
 ## 🔒 Security Best Practices
 
 ### ✅ DO
 
-- Store API keys in Vercel environment variables
-- Use `vercel dev` for local development (loads env vars automatically)
+- Store ALL API keys in Vercel environment variables
+- Use the `useSecureSdk` hook for all SDK operations
+- Initialize SDK server-side only
 - Implement rate limiting for production
-- Log requests for monitoring
 
 ### ❌ DON'T
 
-- Put API keys in frontend code
-- Put API keys in version control
+- Put ANY API keys in frontend code
+- Initialize SDK in the browser
 - Commit `.env` files with real keys
+- Expose bundler API key to clients
 
-## 🧪 Testing the Setup
+## 📋 Environment Variables
 
-1. Run `pnpm dev` to start the development server
-2. Open the app (usually http://localhost:3000)
-3. Check the "Backend Proxy" status indicator - should show "✅ Connected"
-4. Connect a wallet using the Reown modal
-5. Click "Fetch Protocols" - data should load from ZyFAI via your serverless functions
+### Server-Side (Required - Keep Secret!)
 
-## 📋 Environment Variables Reference
+| Variable             | Required | Description                          |
+| -------------------- | -------- | ------------------------------------ |
+| `ZYFAI_API_KEY`      | Yes      | ZyFAI Execution API key              |
+| `ZYFAI_DATA_API_KEY` | Yes      | ZyFAI Data API key                   |
+| `BUNDLER_API_KEY`    | Yes      | Pimlico bundler key for Safe ops     |
+| `NODE_ENV`           | No       | Environment (development/production) |
 
-### Server-Side (Vercel Environment Variables)
-
-| Variable             | Required | Description                                   |
-| -------------------- | -------- | --------------------------------------------- |
-| `ZYFAI_API_KEY`      | Yes      | ZyFAI Execution API key (format: `zyfai_...`) |
-| `ZYFAI_DATA_API_KEY` | Yes      | ZyFAI Data API key (format: `zyfai_...`)      |
-| `NODE_ENV`           | No       | Environment: development, staging, production |
-
-### Client-Side (`.env` or Vercel)
+### Client-Side (Safe to Expose)
 
 | Variable                        | Required | Description                      |
 | ------------------------------- | -------- | -------------------------------- |
@@ -167,56 +163,33 @@ function MyComponent() {
 
 ### Deploy to Vercel
 
-1. Push your code to GitHub
-2. Import the project in Vercel dashboard
+1. Push code to GitHub
+2. Import project in Vercel dashboard
 3. Set environment variables:
    - `ZYFAI_API_KEY`
    - `ZYFAI_DATA_API_KEY`
+   - `BUNDLER_API_KEY`
+   - `VITE_WALLETCONNECT_PROJECT_ID`
 4. Deploy!
-
-Vercel automatically:
-
-- Builds the Vite frontend
-- Deploys serverless functions from `/api`
-- Handles routing
-
-## 📖 Original Demo (Not Recommended)
-
-The original demo (`App.tsx`) shows direct API key usage in the frontend. **This is NOT recommended for production** as it exposes your API keys to users.
-
-To switch between demos, edit `src/main.tsx`:
-
-```tsx
-// Secure (recommended)
-import AppSecure from "./AppSecure.tsx";
-
-// Original (not recommended - exposes API keys!)
-// import App from "./App.tsx";
-```
 
 ## 🆘 Troubleshooting
 
-### "API proxy not available"
+### "SDK not configured"
 
-- Ensure you're running with `pnpm dev` (uses `vercel dev`)
-- Check that environment variables are set in `.env` or Vercel project settings
-- Run `vercel env pull` to sync environment variables locally
+Check the health endpoint status indicators:
 
-### "API Request Failed"
+- API: ✅ - `ZYFAI_API_KEY` is set
+- Data: ✅ - `ZYFAI_DATA_API_KEY` is set
+- Bundler: ✅ - `BUNDLER_API_KEY` is set
 
-- Check serverless function logs in Vercel dashboard
-- Verify API keys are correctly set
-- Ensure the API key format is correct (`zyfai_...`)
+### "Failed to deploy Safe"
 
-### "Wallet Connection Issues"
-
-- Verify your WalletConnect project ID is set
-- Check browser console for errors
-- Try disconnecting and reconnecting
+- Verify `BUNDLER_API_KEY` is set correctly
+- Check bundler key has sufficient credits
+- Verify the address hasn't already deployed a Safe
 
 ## 📚 Additional Resources
 
 - [ZyFAI SDK Documentation](https://docs.zyf.ai)
 - [Vercel Serverless Functions](https://vercel.com/docs/functions)
-- [Reown AppKit Documentation](https://docs.reown.com)
-- [WalletConnect Cloud](https://cloud.walletconnect.com)
+- [Pimlico Documentation](https://docs.pimlico.io)
