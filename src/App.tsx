@@ -270,7 +270,8 @@ function App() {
       setPositions(response.positions ?? []);
       if (
         response.positions.some(
-          (position) => position.pool === null || position.pool === undefined
+          (position) =>
+            position.positions === null || position.positions?.length === 0
         )
       ) {
         setStatus("No positions found.");
@@ -1024,10 +1025,6 @@ function App() {
 
         {sessionInfo ? (
           <div className="detail-grid">
-            <div className="detail-row">
-              <span>Signer</span>
-              <code>{sessionInfo.sessionKeyAddress}</code>
-            </div>
             <div className="detail-row">
               <span>User ID</span>
               <strong>{sessionInfo.userId ?? "n/a"}</strong>

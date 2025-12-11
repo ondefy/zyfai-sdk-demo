@@ -154,7 +154,7 @@ function AppSecure() {
   const { open } = useAppKit();
 
   // Secure SDK hook - SDK is initialized server-side with all API keys
-  const { sdk, health, isReady, isChecking } = useSecureSdk();
+  const { sdk, isReady, isChecking } = useSecureSdk();
 
   const [status, setStatus] = useState("Connect a wallet to begin");
   const [selectedChain, setSelectedChain] =
@@ -352,7 +352,7 @@ function AppSecure() {
       setIsBusy(true);
       setStatus("Fetching safe opportunities…");
       const response = await sdk.getSafeOpportunities(selectedChain);
-      setSafeOpportunities(response);
+      setSafeOpportunities(response as OpportunitiesResponse);
       setStatus(`Loaded ${response.data.length} safe opportunities.`);
     } catch (error) {
       setStatus(
@@ -369,7 +369,7 @@ function AppSecure() {
       setIsBusy(true);
       setStatus("Fetching degen strategies…");
       const response = await sdk.getDegenStrategies(selectedChain);
-      setDegenStrategies(response);
+      setDegenStrategies(response as OpportunitiesResponse);
       setStatus(`Loaded ${response.data.length} degen strategies.`);
     } catch (error) {
       setStatus(`Failed to get degen strategies: ${(error as Error).message}`);
@@ -882,7 +882,7 @@ function AppSecure() {
                 opp.protocolName || opp.protocol_name || "Protocol";
               const poolName = opp.poolName || opp.pool_name || "Pool";
               const apy = opp.apy || opp.pool_apy || opp.combined_apy || 0;
-              const chainId = opp.chainId || opp.chain_id;
+              const chainId = opp.chainId || opp.chain_id || 8453;
 
               return (
                 <article key={opp.id}>
@@ -909,7 +909,7 @@ function AppSecure() {
               const poolName = strat.poolName || strat.pool_name || "Pool";
               const apy =
                 strat.apy || strat.pool_apy || strat.combined_apy || 0;
-              const chainId = strat.chainId || strat.chain_id;
+              const chainId = strat.chainId || strat.chain_id || 8453;
               const strategyType = strat.strategy_type || strat.strategyType;
 
               return (
