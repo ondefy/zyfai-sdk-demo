@@ -4,11 +4,6 @@
   "buildCommand": "pnpm build",
   "devCommand": "pnpm dev:vite",
   "outputDirectory": "dist",
-  "functions": {
-    "api/**/*.ts": {
-      "runtime": "nodejs20.x"
-    }
-  },
   "headers": [
     {
       "source": "/api/(.*)",
@@ -26,4 +21,3 @@
     }
   ]
 }
-
