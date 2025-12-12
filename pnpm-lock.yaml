@@ -18,8 +18,8 @@ importers:
         specifier: 5.62.10
         version: 5.62.10(react@18.3.1)
       '@zyfai/sdk':
-        specifier: ^0.1.7
-        version: 0.1.7(ethers@6.16.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(viem@2.40.3(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.1.13))
+        specifier: ^0.1.8
+        version: 0.1.8(ethers@6.16.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(viem@2.40.3(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.1.13))
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -1213,8 +1213,8 @@ packages:
   '@walletconnect/window-metadata@1.0.1':
     resolution: {integrity: sha512-9koTqyGrM2cqFRW517BPY/iEtUDx2r1+Pwwu5m7sJ7ka79wi3EyqhqcICk/yDmv6jAS1rjKgTKXlEhanYjijcA==}
 
-  '@zyfai/sdk@0.1.7':
-    resolution: {integrity: sha512-mTEppmGqQT1bDPq4qbGVzBsewYwE87cA/E1CcS3ek87KyHmqtALR0n4zDIREQOK61mkdcblZIANMkOsm5vy7XA==}
+  '@zyfai/sdk@0.1.8':
+    resolution: {integrity: sha512-VFlyRITgFxRIIITnJGQ+LhCt5v7TRREJU2QRxG5v+LwWwDxAqXa23G3dScmgkq7ZDjPt4ddz/g37h5qVfwruIw==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       viem: ^2.0.0
@@ -5921,7 +5921,7 @@ snapshots:
       '@walletconnect/window-getters': 1.0.1
       tslib: 1.14.1
 
-  '@zyfai/sdk@0.1.7(ethers@6.16.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(viem@2.40.3(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.1.13))':
+  '@zyfai/sdk@0.1.8(ethers@6.16.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(viem@2.40.3(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.1.13))':
     dependencies:
       '@rhinestone/module-sdk': 0.2.11(viem@2.40.3(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.1.13))
       axios: 1.13.2
