@@ -105,10 +105,11 @@
     "skipLibCheck": true /* Skip type checking all .d.ts files. */,
     "useDefineForClassFields": true,
     /* Bundler mode */
-    "allowImportingTsExtensions": true,
-    "types": ["vitest/globals"]
+    "allowImportingTsExtensions": true
   },
-  "include": ["src", "api", "index.tsx", "custom.d.ts", "react-app-env.d.ts"],
-  "exclude": ["node_modules", "dist", "packages"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
 }
