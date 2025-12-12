@@ -179,6 +179,7 @@ function App() {
   const [apyHistoryDays, setApyHistoryDays] = useState<"7D" | "14D" | "30D">(
     "7D"
   );
+  const [selectedProtocols, setSelectedProtocols] = useState<string[]>([]);
 
   const sdk = useMemo(() => {
     const apiKey = import.meta.env.VITE_ZYFAI_API_KEY;
@@ -456,6 +457,31 @@ function App() {
       setUserDetails(response);
     } catch (error) {
       setStatus(`Failed to update profile: ${(error as Error).message}`);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const updateProtocols = async () => {
+    if (!ensureWallet()) return;
+    if (selectedProtocols.length === 0) {
+      setStatus("Please select at least one protocol to update.");
+      return;
+    }
+    try {
+      setIsBusy(true);
+      setStatus("Updating user protocols…");
+      await sdk!.updateUserProfile({
+        protocols: selectedProtocols,
+      });
+      setStatus(
+        `Protocols updated successfully! Selected ${selectedProtocols.length} protocol(s).`
+      );
+      // Refresh user details to show updated info
+      const response = await sdk!.getUserDetails();
+      setUserDetails(response);
+    } catch (error) {
+      setStatus(`Failed to update protocols: ${(error as Error).message}`);
     } finally {
       setIsBusy(false);
     }
@@ -788,6 +814,7 @@ function App() {
     setApyHistory(null);
     setRebalanceInfo(null);
     setRebalanceFrequency(null);
+    setSelectedProtocols([]);
     setStatus("Wallet disconnected.");
   };
 
@@ -1123,6 +1150,80 @@ function App() {
           </div>
         ) : (
           <p className="empty">Fetch user details to view profile.</p>
+        )}
+      </section>
+
+      {/* =============================== PROTOCOL MANAGEMENT =============================== */}
+      <section className="panel">
+        <h2>Protocol Management</h2>
+        <p>
+          Select specific protocols to use for yield optimization. When
+          protocols are selected, only these will be used for your positions.
+        </p>
+        <div className="control-buttons">
+          <button onClick={fetchProtocols} disabled={isBusy}>
+            Load Available Protocols
+          </button>
+          <button
+            onClick={updateProtocols}
+            disabled={isBusy || !address || selectedProtocols.length === 0}
+            title={
+              selectedProtocols.length === 0
+                ? "Select at least one protocol"
+                : "Update your protocol preferences"
+            }
+          >
+            Update Protocols ({selectedProtocols.length} selected)
+          </button>
+        </div>
+
+        {protocols.length > 0 ? (
+          <div className="list" style={{ marginTop: "1rem" }}>
+            <strong>Select Protocols ({protocols.length} available)</strong>
+            {protocols.map((protocol) => {
+              const isSelected = selectedProtocols.includes(protocol.id);
+              return (
+                <article
+                  key={protocol.id}
+                  style={{
+                    cursor: "pointer",
+                    backgroundColor: isSelected ? "#2d3748" : undefined,
+                    border: isSelected ? "2px solid #4299e1" : undefined,
+                  }}
+                  onClick={() => {
+                    if (isSelected) {
+                      setSelectedProtocols(
+                        selectedProtocols.filter((id) => id !== protocol.id)
+                      );
+                    } else {
+                      setSelectedProtocols([...selectedProtocols, protocol.id]);
+                    }
+                  }}
+                >
+                  <header>
+                    <div>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => {
+                          // Handled by parent onClick
+                        }}
+                        style={{ marginRight: "10px", cursor: "pointer" }}
+                      />
+                      <strong>{protocol.name}</strong>
+                      <span> | {protocol.type}</span>
+                    </div>
+                    <small>
+                      Chains: {protocol.chains.map(formatChainName).join(", ")}
+                    </small>
+                  </header>
+                  <p>{protocol.description ?? "No description provided."}</p>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="empty">Load protocols to select and update your preferences.</p>
         )}
       </section>
 
