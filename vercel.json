@@ -2,7 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
   "buildCommand": "pnpm build",
-  "devCommand": "pnpm dev:vite",
   "outputDirectory": "dist",
   "headers": [
     {
