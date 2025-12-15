@@ -1,5 +1,6 @@
 /**
- * Script to fetch wallet data using the ZyFAI SDK
+ * Comprehensive end-to-end wallet data fetching script using the ZyFAI SDK
+ * Tests all available data endpoints for a given wallet address
  *
  * Usage:
  *   pnpm tsx scripts/fetch-wallet-data.ts <wallet-address> [chain-id]
@@ -16,7 +17,22 @@ import type { SupportedChainId } from "@zyfai/sdk";
 config();
 
 /**
- * Main function to fetch wallet data
+ * Helper function to safely call an async function and handle errors
+ */
+async function safeCall<T>(
+  name: string,
+  fn: () => Promise<T>
+): Promise<T | null> {
+  try {
+    return await fn();
+  } catch (error) {
+    console.warn(`⚠️  ${name}: ${(error as Error).message}`);
+    return null;
+  }
+}
+
+/**
+ * Main function to fetch all wallet data
  */
 async function main() {
   // Get wallet address from command line arguments
@@ -54,8 +70,11 @@ async function main() {
     : (8453 as SupportedChainId);
 
   try {
-    console.log(`\n🔍 Fetching data for wallet: ${walletAddress}`);
-    console.log(`📍 Chain ID: ${chainId}\n`);
+    console.log(`\n🔍 Comprehensive Wallet Data Fetch Test`);
+    console.log(`═══════════════════════════════════════════`);
+    console.log(`📍 Wallet: ${walletAddress}`);
+    console.log(`📍 Chain ID: ${chainId}`);
+    console.log(`📍 Environment: staging\n`);
 
     // Initialize SDK
     const sdk = new ZyfaiSDK({
@@ -64,127 +83,316 @@ async function main() {
       environment: "staging", // Change to "production" if needed
     });
 
-    // Fetch wallet data using various SDK methods
-    // Note: The SDK now supports read-only operations without account connection
-    console.log("📊 Fetching wallet information...\n");
+    console.log("📊 Starting comprehensive data fetch...\n");
 
-    // 1. Get smart wallet by EOA
-    try {
-      const smartWalletInfo = await sdk.getSmartWalletByEOA(walletAddress);
+    // ============================================================================
+    // 1. WALLET INFORMATION
+    // ============================================================================
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("📋 1. WALLET INFORMATION");
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+
+    const smartWalletInfo = await safeCall("Get Smart Wallet by EOA", () =>
+      sdk.getSmartWalletByEOA(walletAddress)
+    );
+
+    if (smartWalletInfo) {
       console.log("✅ Smart Wallet Info:");
       console.log(JSON.stringify(smartWalletInfo, null, 2));
       console.log("\n");
-    } catch (error) {
-      console.warn(
-        `⚠️  Failed to get smart wallet by EOA: ${(error as Error).message}\n`
-      );
     }
 
-    // 2. Get positions
-    try {
-      const positions = await sdk.getPositions(walletAddress, chainId);
+    const smartWalletAddress = smartWalletInfo?.smartWallet;
+
+    // ============================================================================
+    // 2. POSITIONS & PROTOCOLS
+    // ============================================================================
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("📋 2. POSITIONS & PROTOCOLS");
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+
+    const positions = await safeCall("Get Positions", () =>
+      sdk.getPositions(walletAddress, chainId)
+    );
+    if (positions) {
       console.log("✅ Positions:");
       console.log(JSON.stringify(positions, null, 2));
       console.log("\n");
-    } catch (error) {
-      console.warn(
-        `⚠️  Failed to get positions: ${(error as Error).message}\n`
-      );
     }
 
-    // 3. Get onchain earnings (requires smart wallet address)
-    try {
-      const smartWalletInfo = await sdk.getSmartWalletByEOA(walletAddress);
-      if (smartWalletInfo.smartWallet) {
-        const earnings = await sdk.getOnchainEarnings(
-          smartWalletInfo.smartWallet
-        );
-        console.log("✅ Onchain Earnings:");
-        console.log(JSON.stringify(earnings, null, 2));
-        console.log("\n");
-      }
-    } catch (error) {
-      console.warn(
-        `⚠️  Failed to get onchain earnings: ${(error as Error).message}\n`
-      );
-    }
-
-    // 4. Get first topup
-    try {
-      const smartWalletInfo = await sdk.getSmartWalletByEOA(walletAddress);
-      if (smartWalletInfo.smartWallet) {
-        const firstTopup = await sdk.getFirstTopup(
-          smartWalletInfo.smartWallet,
-          chainId
-        );
-        console.log("✅ First Topup:");
-        console.log(JSON.stringify(firstTopup, null, 2));
-        console.log("\n");
-      }
-    } catch (error) {
-      console.warn(
-        `⚠️  Failed to get first topup: ${(error as Error).message}\n`
-      );
-    }
-
-    // 5. Get transaction history
-    try {
-      const smartWalletInfo = await sdk.getSmartWalletByEOA(walletAddress);
-      if (smartWalletInfo.smartWallet) {
-        const history = await sdk.getHistory(
-          smartWalletInfo.smartWallet,
-          chainId,
+    const protocols = await safeCall("Get Available Protocols", () =>
+      sdk.getAvailableProtocols(chainId)
+    );
+    if (protocols) {
+      console.log("✅ Available Protocols:");
+      console.log(
+        JSON.stringify(
           {
-            limit: 10,
-          }
-        );
-        console.log("✅ Transaction History (last 10):");
-        console.log(JSON.stringify(history, null, 2));
+            success: protocols.success,
+            chainId: protocols.chainId,
+            count: protocols.protocols?.length || 0,
+            protocols: protocols.protocols?.slice(0, 3), // Show first 3
+          },
+          null,
+          2
+        )
+      );
+      if (protocols.protocols && protocols.protocols.length > 3) {
+        console.log(`   ... and ${protocols.protocols.length - 3} more\n`);
+      } else {
         console.log("\n");
       }
-    } catch (error) {
-      console.warn(`⚠️  Failed to get history: ${(error as Error).message}\n`);
     }
 
-    // 6. Get daily earnings
-    try {
-      const smartWalletInfo = await sdk.getSmartWalletByEOA(walletAddress);
-      if (smartWalletInfo.smartWallet) {
-        const dailyEarnings = await sdk.getDailyEarnings(
-          smartWalletInfo.smartWallet,
-          undefined,
-          undefined
-        );
+    // ============================================================================
+    // 3. EARNINGS DATA
+    // ============================================================================
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("📋 3. EARNINGS DATA");
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+
+    if (smartWalletAddress) {
+      const onchainEarnings = await safeCall("Get Onchain Earnings", () =>
+        sdk.getOnchainEarnings(smartWalletAddress)
+      );
+      if (onchainEarnings) {
+        console.log("✅ Onchain Earnings:");
+        console.log(JSON.stringify(onchainEarnings, null, 2));
+        console.log("\n");
+      }
+
+      const dailyEarnings = await safeCall("Get Daily Earnings", () =>
+        sdk.getDailyEarnings(smartWalletAddress, undefined, undefined)
+      );
+      if (dailyEarnings) {
         console.log("✅ Daily Earnings:");
         console.log(JSON.stringify(dailyEarnings, null, 2));
         console.log("\n");
       }
-    } catch (error) {
-      console.warn(
-        `⚠️  Failed to get daily earnings: ${(error as Error).message}\n`
+
+      const apyHistory = await safeCall("Get Daily APY History", () =>
+        sdk.getDailyApyHistory(smartWalletAddress, "7D")
       );
+      if (apyHistory) {
+        console.log("✅ Daily APY History (7D):");
+        console.log(JSON.stringify(apyHistory, null, 2));
+        console.log("\n");
+      }
+    } else {
+      console.log("⏭️  Skipping earnings data (no smart wallet found)\n");
     }
 
-    // 7. Get Debank portfolio
-    try {
-      const smartWalletInfo = await sdk.getSmartWalletByEOA(walletAddress);
-      if (smartWalletInfo.smartWallet) {
-        const portfolio = await sdk.getDebankPortfolio(
-          smartWalletInfo.smartWallet
-        );
+    // ============================================================================
+    // 4. TRANSACTION HISTORY
+    // ============================================================================
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("📋 4. TRANSACTION HISTORY");
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+
+    if (smartWalletAddress) {
+      const firstTopup = await safeCall("Get First Topup", () =>
+        sdk.getFirstTopup(smartWalletAddress, chainId)
+      );
+      if (firstTopup) {
+        console.log("✅ First Topup:");
+        console.log(JSON.stringify(firstTopup, null, 2));
+        console.log("\n");
+      }
+
+      const history = await safeCall("Get Transaction History", () =>
+        sdk.getHistory(smartWalletAddress, chainId, { limit: 10 })
+      );
+      if (history) {
+        console.log("✅ Transaction History (last 10):");
+        console.log(JSON.stringify(history, null, 2));
+        console.log("\n");
+      }
+    } else {
+      console.log("⏭️  Skipping transaction history (no smart wallet found)\n");
+    }
+
+    // ============================================================================
+    // 5. PORTFOLIO DATA
+    // ============================================================================
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("📋 5. PORTFOLIO DATA");
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+
+    if (smartWalletAddress) {
+      const portfolio = await safeCall("Get Debank Portfolio", () =>
+        sdk.getDebankPortfolio(smartWalletAddress)
+      );
+      if (portfolio) {
         console.log("✅ Debank Portfolio:");
         console.log(JSON.stringify(portfolio, null, 2));
         console.log("\n");
       }
-    } catch (error) {
-      console.warn(
-        `⚠️  Failed to get Debank portfolio: ${(error as Error).message}\n`
-      );
+    } else {
+      console.log("⏭️  Skipping portfolio data (no smart wallet found)\n");
     }
 
-    console.log("✨ Data fetch completed!\n");
+    // ============================================================================
+    // 6. REBALANCE INFORMATION
+    // ============================================================================
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("📋 6. REBALANCE INFORMATION");
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+
+    if (smartWalletAddress) {
+      const rebalanceFrequency = await safeCall("Get Rebalance Frequency", () =>
+        sdk.getRebalanceFrequency(smartWalletAddress)
+      );
+      if (rebalanceFrequency) {
+        console.log("✅ Rebalance Frequency:");
+        console.log(JSON.stringify(rebalanceFrequency, null, 2));
+        console.log("\n");
+      }
+    }
+
+    const rebalanceInfo = await safeCall("Get Rebalance Info", () =>
+      sdk.getRebalanceInfo()
+    );
+    if (rebalanceInfo) {
+      console.log("✅ Rebalance Info:");
+      console.log(
+        JSON.stringify(
+          {
+            success: rebalanceInfo.success,
+            count: rebalanceInfo.count,
+            sample: rebalanceInfo.data?.slice(0, 2), // Show first 2
+          },
+          null,
+          2
+        )
+      );
+      if (rebalanceInfo.data && rebalanceInfo.data.length > 2) {
+        console.log(`   ... and ${rebalanceInfo.data.length - 2} more\n`);
+      } else {
+        console.log("\n");
+      }
+    }
+
+    // ============================================================================
+    // 7. OPPORTUNITIES
+    // ============================================================================
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("📋 7. YIELD OPPORTUNITIES");
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+
+    const safeOpportunities = await safeCall("Get Safe Opportunities", () =>
+      sdk.getSafeOpportunities(chainId)
+    );
+    if (safeOpportunities) {
+      console.log("✅ Safe Opportunities:");
+      console.log(
+        JSON.stringify(
+          {
+            success: safeOpportunities.success,
+            chainId: safeOpportunities.chainId,
+            count: safeOpportunities.data?.length || 0,
+            sample: safeOpportunities.data?.slice(0, 2), // Show first 2
+          },
+          null,
+          2
+        )
+      );
+      if (safeOpportunities.data && safeOpportunities.data.length > 2) {
+        console.log(`   ... and ${safeOpportunities.data.length - 2} more\n`);
+      } else {
+        console.log("\n");
+      }
+    }
+
+    const degenStrategies = await safeCall("Get Degen Strategies", () =>
+      sdk.getDegenStrategies(chainId)
+    );
+    if (degenStrategies) {
+      console.log("✅ Degen Strategies:");
+      console.log(
+        JSON.stringify(
+          {
+            success: degenStrategies.success,
+            chainId: degenStrategies.chainId,
+            count: degenStrategies.data?.length || 0,
+            sample: degenStrategies.data?.slice(0, 2), // Show first 2
+          },
+          null,
+          2
+        )
+      );
+      if (degenStrategies.data && degenStrategies.data.length > 2) {
+        console.log(`   ... and ${degenStrategies.data.length - 2} more\n`);
+      } else {
+        console.log("\n");
+      }
+    }
+
+    // ============================================================================
+    // 8. PLATFORM STATISTICS
+    // ============================================================================
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("📋 8. PLATFORM STATISTICS");
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+
+    const tvl = await safeCall("Get TVL", () => sdk.getTVL());
+    if (tvl) {
+      console.log("✅ Total Value Locked (TVL):");
+      console.log(JSON.stringify(tvl, null, 2));
+      console.log("\n");
+    }
+
+    const volume = await safeCall("Get Volume", () => sdk.getVolume());
+    if (volume) {
+      console.log("✅ Total Volume:");
+      console.log(JSON.stringify(volume, null, 2));
+      console.log("\n");
+    }
+
+    const activeWallets = await safeCall("Get Active Wallets", () =>
+      sdk.getActiveWallets(chainId)
+    );
+    if (activeWallets) {
+      console.log("✅ Active Wallets:");
+      console.log(JSON.stringify(activeWallets, null, 2));
+      console.log("\n");
+    }
+
+    // ============================================================================
+    // SUMMARY
+    // ============================================================================
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("✨ COMPREHENSIVE DATA FETCH COMPLETED!");
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+
+    const summary = {
+      wallet: walletAddress,
+      chainId,
+      smartWallet: smartWalletAddress || "Not found",
+      endpointsTested: {
+        walletInfo: !!smartWalletInfo,
+        positions: !!positions,
+        protocols: !!protocols,
+        onchainEarnings: !!smartWalletAddress,
+        dailyEarnings: !!smartWalletAddress,
+        apyHistory: !!smartWalletAddress,
+        firstTopup: !!smartWalletAddress,
+        history: !!smartWalletAddress,
+        portfolio: !!smartWalletAddress,
+        rebalanceFrequency: !!smartWalletAddress,
+        rebalanceInfo: !!rebalanceInfo,
+        safeOpportunities: !!safeOpportunities,
+        degenStrategies: !!degenStrategies,
+        tvl: !!tvl,
+        volume: !!volume,
+        activeWallets: !!activeWallets,
+      },
+    };
+
+    console.log("📊 Test Summary:");
+    console.log(JSON.stringify(summary, null, 2));
+    console.log("\n");
   } catch (error) {
-    console.error(`\n❌ Error: ${(error as Error).message}`);
+    console.error(`\n❌ Fatal Error: ${(error as Error).message}`);
     console.error((error as Error).stack);
     process.exit(1);
   }

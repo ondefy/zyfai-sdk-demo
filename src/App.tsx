@@ -1223,7 +1223,9 @@ function App() {
             })}
           </div>
         ) : (
-          <p className="empty">Load protocols to select and update your preferences.</p>
+          <p className="empty">
+            Load protocols to select and update your preferences.
+          </p>
         )}
       </section>
 
@@ -1278,9 +1280,9 @@ function App() {
           <button onClick={fetchActiveWallets} disabled={isBusy}>
             Get Active Wallets
           </button>
-          <button onClick={fetchSmartWalletByEoa} disabled={isBusy || !address}>
-            Get My Smart Wallets
-          </button>
+          {/* <button onClick={fetchSmartWalletByEoa} disabled={isBusy || !address}>
+            Get My Smart Wallet
+          </button> */}
         </div>
 
         {activeWallets && (
