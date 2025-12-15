@@ -536,27 +536,6 @@ function App() {
     }
   };
 
-  const fetchSmartWalletByEoa = async () => {
-    if (!ensureWallet()) return;
-    try {
-      setIsBusy(true);
-      setStatus("Fetching smart wallets by EOA…");
-      const response = await sdk!.getSmartWalletByEOA(address!);
-      setSmartWalletByEoa(response);
-      setStatus(
-        response.smartWallet
-          ? `Found smart wallet: ${truncate(response.smartWallet)}`
-          : "No smart wallets found for this EOA."
-      );
-    } catch (error) {
-      setStatus(
-        `Failed to get smart wallet by EOA: ${(error as Error).message}`
-      );
-    } finally {
-      setIsBusy(false);
-    }
-  };
-
   const fetchFirstTopup = async () => {
     if (!ensureWallet()) return;
     if (!walletInfo?.address) {
