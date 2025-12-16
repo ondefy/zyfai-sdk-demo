@@ -50,17 +50,11 @@ async function main() {
     process.exit(1);
   }
 
-  // Get API keys from environment variables
+  // Get API key from environment variables
   const apiKey = process.env.VITE_ZYFAI_API_KEY;
-  const dataApiKey = process.env.VITE_ZYFAI_DATA_API_KEY;
 
   if (!apiKey) {
     console.error("Error: VITE_ZYFAI_API_KEY is not set in .env file");
-    process.exit(1);
-  }
-
-  if (!dataApiKey) {
-    console.error("Error: VITE_ZYFAI_DATA_API_KEY is not set in .env file");
     process.exit(1);
   }
 
@@ -79,7 +73,6 @@ async function main() {
     // Initialize SDK
     const sdk = new ZyfaiSDK({
       apiKey,
-      dataApiKey,
       environment: "staging", // Change to "production" if needed
     });
 

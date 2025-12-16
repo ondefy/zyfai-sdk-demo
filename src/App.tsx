@@ -183,12 +183,11 @@ function App() {
 
   const sdk = useMemo(() => {
     const apiKey = import.meta.env.VITE_ZYFAI_API_KEY;
-    const dataApiKey = import.meta.env.VITE_ZYFAI_DATA_API_KEY;
     const bundlerApiKey = import.meta.env.VITE_BUNDLER_API_KEY;
 
-    if (!apiKey || !bundlerApiKey || !dataApiKey) {
+    if (!apiKey || !bundlerApiKey) {
       console.warn(
-        "Set VITE_ZYFAI_API_KEY, VITE_ZYFAI_DATA_API_KEY and VITE_BUNDLER_API_KEY to use the SDK."
+        "Set VITE_ZYFAI_API_KEY and VITE_BUNDLER_API_KEY to use the SDK."
       );
       return null;
     }
@@ -196,7 +195,6 @@ function App() {
     return new ZyfaiSDK({
       apiKey,
       bundlerApiKey,
-      dataApiKey,
       environment: "staging",
     });
   }, []);
