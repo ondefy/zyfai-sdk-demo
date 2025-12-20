@@ -28,22 +28,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useAccount, useDisconnect, useWalletClient } from "wagmi";
 import "./App.css";
 
-// Common token addresses per chain for convenience
-const TOKEN_PRESETS: Record<
-  SupportedChainId,
-  { symbol: string; address: string }[]
-> = {
-  8453: [
-    { symbol: "USDC", address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" },
-  ],
-  42161: [
-    { symbol: "USDC", address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831" },
-  ],
-  9745: [
-    { symbol: "USDT", address: "0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb" },
-  ],
-};
-
 const CHAIN_OPTIONS: { id: SupportedChainId; label: string }[] = [
   { id: 8453, label: "Base (8453)" },
   { id: 42161, label: "Arbitrum (42161)" },
@@ -130,7 +114,6 @@ function App() {
   );
 
   // Deposit state
-  const [depositToken, setDepositToken] = useState("");
   const [depositAmount, setDepositAmount] = useState("");
   const [depositResult, setDepositResult] = useState<DepositResponse | null>(
     null
@@ -138,7 +121,6 @@ function App() {
 
   // Withdraw state
   const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [withdrawReceiver, setWithdrawReceiver] = useState("");
   const [withdrawResult, setWithdrawResult] = useState<WithdrawResponse | null>(
     null
   );
@@ -266,16 +248,19 @@ function App() {
       setStatus("Fetching ZyFAI positions…");
       const response = await sdk!.getPositions(address!, selectedChain);
       console.log("response", response);
-      setPositions(response.positions ?? []);
-      if (
-        response.positions.some(
+      const positionsArray = response.positions ?? [];
+      setPositions(positionsArray);
+      if (positionsArray.length === 0) {
+        setStatus("No active positions found.");
+      } else if (
+        positionsArray.some(
           (position) =>
             position.positions === null || position.positions?.length === 0
         )
       ) {
         setStatus("No positions found.");
       } else {
-        setStatus(`Loaded ${response.positions.length} position bundles.`);
+        setStatus(`Loaded ${positionsArray.length} position bundles.`);
       }
     } catch (error) {
       setStatus(`Failed to load positions: ${(error as Error).message}`);
@@ -354,10 +339,6 @@ function App() {
 
   const executeDeposit = async () => {
     if (!ensureWallet()) return;
-    if (!depositToken) {
-      setStatus("Please enter a token address for deposit.");
-      return;
-    }
     if (!depositAmount || depositAmount === "0") {
       setStatus(
         "Please enter a valid deposit amount (in least decimal units)."
@@ -370,7 +351,6 @@ function App() {
       const response = await sdk!.depositFunds(
         address!,
         selectedChain,
-        depositToken,
         depositAmount
       );
       setDepositResult(response);
@@ -399,8 +379,7 @@ function App() {
       const response = await sdk!.withdrawFunds(
         address!,
         selectedChain,
-        withdrawAmount || undefined,
-        withdrawReceiver || undefined
+        withdrawAmount || undefined
       );
       setWithdrawResult(response);
       setStatus(
@@ -770,11 +749,9 @@ function App() {
     setWalletInfo(null);
     setDeploymentResult(null);
     setSessionInfo(null);
-    setDepositToken("");
     setDepositAmount("");
     setDepositResult(null);
     setWithdrawAmount("");
-    setWithdrawReceiver("");
     setWithdrawResult(null);
     setUserDetails(null);
     setTvlData(null);
@@ -893,7 +870,7 @@ function App() {
       <section className="panel">
         <h2>Positions</h2>
         {positions.length === 0 ? (
-          <p className="empty">No active ZyFAI positions detected.</p>
+          <p className="empty">No active positions found.</p>
         ) : (
           <div className="list">
             {positions.map((bundle, index) => {
@@ -1310,34 +1287,12 @@ function App() {
         <h2>Deposit Funds</h2>
         <p>
           Transfer tokens into your ZyFAI smart wallet for yield optimization.
-          Amounts are in least decimal units (e.g., 1 USDC = 1000000).
+          The token address is automatically selected based on the chain (USDC
+          for Base/Arbitrum, USDT for Plasma). Amounts are in least decimal
+          units (e.g., 1 USDC = 1000000).
         </p>
 
         <div className="form-grid">
-          <label className="form-field">
-            <span>Token Address</span>
-            <div className="input-with-presets">
-              <input
-                type="text"
-                placeholder="0x…"
-                value={depositToken}
-                onChange={(e) => setDepositToken(e.target.value)}
-              />
-              <div className="preset-buttons">
-                {TOKEN_PRESETS[selectedChain]?.map((token) => (
-                  <button
-                    key={token.address}
-                    type="button"
-                    className="preset"
-                    onClick={() => setDepositToken(token.address)}
-                  >
-                    {token.symbol}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </label>
-
           <label className="form-field">
             <span>Amount (least decimals)</span>
             <input
@@ -1352,7 +1307,7 @@ function App() {
         <div className="control-buttons" style={{ marginTop: "1rem" }}>
           <button
             onClick={executeDeposit}
-            disabled={isBusy || !address || !depositToken || !depositAmount}
+            disabled={isBusy || !address || !depositAmount}
           >
             Execute Deposit
           </button>
@@ -1364,8 +1319,7 @@ function App() {
               <strong>Last Deposit</strong>
             </div>
             <p>
-              Status: {depositResult.status} · Amount: {depositResult.amount} ·
-              Tx:{" "}
+              Amount: {depositResult.amount} · Tx:{" "}
               <a
                 href={getExplorerUrl(selectedChain, depositResult.txHash)}
                 target="_blank"
@@ -1383,7 +1337,7 @@ function App() {
         <h2>Withdraw Funds</h2>
         <p>
           Withdraw funds from your ZyFAI smart wallet. Leave amount empty for a
-          full withdrawal. Leave receiver empty to send to your EOA.
+          full withdrawal. Funds will be sent to your EOA.
         </p>
 
         <div className="form-grid">
@@ -1394,16 +1348,6 @@ function App() {
               placeholder="Empty = full withdrawal"
               value={withdrawAmount}
               onChange={(e) => setWithdrawAmount(e.target.value)}
-            />
-          </label>
-
-          <label className="form-field">
-            <span>Receiver (optional)</span>
-            <input
-              type="text"
-              placeholder="0x… (defaults to your EOA)"
-              value={withdrawReceiver}
-              onChange={(e) => setWithdrawReceiver(e.target.value)}
             />
           </label>
         </div>
@@ -1420,8 +1364,7 @@ function App() {
               <strong>Last Withdraw</strong>
             </div>
             <p>
-              Type: {withdrawResult.type} · Amount: {withdrawResult.amount} ·
-              Receiver: {truncate(withdrawResult.receiver, 8)} ·
+              Type: {withdrawResult.type} · Amount: {withdrawResult.amount}
             </p>
           </div>
         )}
