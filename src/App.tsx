@@ -177,9 +177,9 @@ function App() {
     return new ZyfaiSDK({
       apiKey,
       bundlerApiKey,
-      environment: "staging",
+      environment: "production",
       rpcUrls: {
-        // fmmHARUxTahHDSZ_mqN7M
+        // Alchemy RPC URLs for each chain (free account)
         8453: "https://base-mainnet.g.alchemy.com/v2/fmmHARUxTahHDSZ_mqN7M",
         42161: "https://arb-mainnet.g.alchemy.com/v2/fmmHARUxTahHDSZ_mqN7M",
         9745: "https://plasma-mainnet.g.alchemy.com/v2/fmmHARUxTahHDSZ_mqN7M",
