@@ -178,6 +178,12 @@ function App() {
       apiKey,
       bundlerApiKey,
       environment: "staging",
+      rpcUrls: {
+        // fmmHARUxTahHDSZ_mqN7M
+        8453: "https://base-mainnet.g.alchemy.com/v2/fmmHARUxTahHDSZ_mqN7M",
+        42161: "https://arb-mainnet.g.alchemy.com/v2/fmmHARUxTahHDSZ_mqN7M",
+        9745: "https://plasma-mainnet.g.alchemy.com/v2/fmmHARUxTahHDSZ_mqN7M",
+      },
     });
   }, []);
 
