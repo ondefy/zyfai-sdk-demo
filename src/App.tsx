@@ -84,7 +84,7 @@ const getExplorerUrl = (chainId: string | number, txHash: string) => {
     case "42161":
       return `https://arbiscan.io/tx/${txHash}`;
     case "9745":
-      return `https://explorer.plasma.io/tx/${txHash}`;
+      return `https://plasmascan.to/tx/${txHash}`;
     default:
       return `https://etherscan.io/tx/${txHash}`;
   }
@@ -165,25 +165,15 @@ function App() {
 
   const sdk = useMemo(() => {
     const apiKey = import.meta.env.VITE_ZYFAI_API_KEY;
-    const bundlerApiKey = import.meta.env.VITE_BUNDLER_API_KEY;
 
-    if (!apiKey || !bundlerApiKey) {
-      console.warn(
-        "Set VITE_ZYFAI_API_KEY and VITE_BUNDLER_API_KEY to use the SDK."
-      );
+    if (!apiKey) {
+      console.warn("Set VITE_ZYFAI_API_KEY to use the SDK.");
       return null;
     }
 
     return new ZyfaiSDK({
       apiKey,
-      bundlerApiKey,
       environment: "production",
-      rpcUrls: {
-        // Alchemy RPC URLs for each chain (free account)
-        8453: "https://base-mainnet.g.alchemy.com/v2/fmmHARUxTahHDSZ_mqN7M",
-        42161: "https://arb-mainnet.g.alchemy.com/v2/fmmHARUxTahHDSZ_mqN7M",
-        9745: "https://plasma-mainnet.g.alchemy.com/v2/fmmHARUxTahHDSZ_mqN7M",
-      },
     });
   }, []);
 
@@ -213,7 +203,7 @@ function App() {
 
   const ensureSdk = () => {
     if (!sdk) {
-      setStatus("Missing env vars. Update VITE_ZYFAI_API_KEY/BUNDLER_API_KEY.");
+      setStatus("Missing env vars. Update VITE_ZYFAI_API_KEY.");
       return false;
     }
     return true;

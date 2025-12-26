@@ -12,12 +12,11 @@ Copy `env.example` and provide your own keys:
 cp env.example .env
 ```
 
-| Variable                        | Description                                                    |
-| ------------------------------- | -------------------------------------------------------------- |
-| `VITE_WALLETCONNECT_PROJECT_ID` | WalletConnect / Reown project ID                               |
-| `VITE_ZYFAI_API_KEY`            | ZyFAI data API key (use the DATA key for staging)              |
-| `VITE_BUNDLER_API_KEY`          | Bundler key used by the SDK when it needs to sign transactions |
-| `VITE_DEFAULT_CHAIN_ID`         | Optional chain to pre-select (8453 = Base)                     |
+| Variable                        | Description                                       |
+| ------------------------------- | ------------------------------------------------- |
+| `VITE_WALLETCONNECT_PROJECT_ID` | WalletConnect / Reown project ID                  |
+| `VITE_ZYFAI_API_KEY`            | ZyFAI data API key (use the DATA key for staging) |
+| `VITE_DEFAULT_CHAIN_ID`         | Optional chain to pre-select (8453 = Base)        |
 
 ## 2. Install & Run
 
