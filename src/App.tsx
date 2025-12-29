@@ -76,6 +76,13 @@ const formatChainName = (chainId: string | number) => {
   }
 };
 
+const filterSupportedChains = (chains: (string | number)[]) => {
+  return chains.filter((chain) => {
+    const chainId = String(chain);
+    return chainId === "8453" || chainId === "42161" || chainId === "9745";
+  });
+};
+
 const getExplorerUrl = (chainId: string | number, txHash: string) => {
   const id = String(chainId);
   switch (id) {
@@ -802,6 +809,80 @@ function App() {
         </div>
       </section>
 
+      {/* =============================== USER DETAILS =============================== */}
+      <section className="panel">
+        <h2>User Details</h2>
+        <p>
+          Fetch authenticated user details including smart wallet, chains, and
+          protocol settings. Update profile to link your Smart Wallet before
+          creating session keys.
+        </p>
+        <div className="control-buttons">
+          <button onClick={fetchUserDetails} disabled={isBusy || !address}>
+            Get User Details
+          </button>
+          <button
+            onClick={updateUserProfile}
+            disabled={isBusy || !address || !walletInfo?.address}
+            title={
+              !walletInfo?.address
+                ? "Resolve Smart Wallet first"
+                : "Update profile with Smart Wallet address"
+            }
+          >
+            Update Profile
+          </button>
+        </div>
+
+        {userDetails?.user ? (
+          <div className="detail-grid">
+            <div className="detail-row">
+              <span>Address</span>
+              <code>{userDetails.user.address}</code>
+            </div>
+            <div className="detail-row">
+              <span>Smart Wallet</span>
+              <code>{userDetails.user.smartWallet}</code>
+            </div>
+            <div className="detail-row">
+              <span>Chains</span>
+              <strong>
+                {userDetails.user.chains?.map(formatChainName).join(", ") ||
+                  "None"}
+              </strong>
+            </div>
+            <div className="detail-row">
+              <span>Strategy</span>
+              <strong>{userDetails.user.strategy || "Default"}</strong>
+            </div>
+            <div className="detail-row">
+              <span>Active Session Key</span>
+              <strong>
+                {userDetails.user.hasActiveSessionKey ? "Yes" : "No"}
+              </strong>
+            </div>
+            <div className="detail-row">
+              <span>Auto Select Protocols</span>
+              <strong>
+                {userDetails.user.autoSelectProtocols ? "Yes" : "No"}
+              </strong>
+            </div>
+            <div className="detail-row">
+              <span>Omni Account</span>
+              <strong>{userDetails.user.omniAccount ? "Yes" : "No"}</strong>
+            </div>
+            <div className="detail-row">
+              <span>Cross-chain Strategy</span>
+              <strong>
+                {userDetails.user.crosschainStrategy ? "Yes" : "No"}
+              </strong>
+            </div>
+          </div>
+        ) : (
+          <p className="empty">Fetch user details to view profile.</p>
+        )}
+      </section>
+
       <section className="controls">
         <label>
           Target Chain
@@ -827,39 +908,6 @@ function App() {
             Fetch Positions
           </button>
         </div>
-      </section>
-      {/* =============================== PROTOCOLS =============================== */}
-      <section className="panel">
-        <h2>Protocols</h2>
-        {protocols.length === 0 ? (
-          <p className="empty">No protocol data loaded yet.</p>
-        ) : (
-          <div className="list">
-            {protocols.map((protocol) => {
-              const poolCount = protocol.pools?.length ?? 0;
-              return (
-                <article key={protocol.id}>
-                  <header>
-                    <div>
-                      <strong>{protocol.name}</strong>
-                      <span> | {protocol.type}</span>
-                    </div>
-                    <small>
-                      Chains: {protocol.chains.map(formatChainName).join(", ")}
-                      {poolCount > 0 && <span> | Pools: {poolCount}</span>}
-                    </small>
-                  </header>
-                  <p>{protocol.description ?? "No description provided."}</p>
-                  {protocol.website && (
-                    <a href={protocol.website} target="_blank" rel="noreferrer">
-                      {protocol.website}
-                    </a>
-                  )}
-                </article>
-              );
-            })}
-          </div>
-        )}
       </section>
 
       {/* =============================== POSITIONS =============================== */}
@@ -916,7 +964,7 @@ function App() {
                         </div>
                         <ul>
                           <li>Token: {slot.token_symbol ?? "Unknown"}</li>
-                          <li>Underlying: {underlying}</li>
+                          <li>Position: {underlying / 1e6}</li>
                           <li>
                             APY:{" "}
                             {apy != null ? `${Number(apy).toFixed(2)}%` : "n/a"}
@@ -928,6 +976,41 @@ function App() {
                       </div>
                     );
                   })}
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* =============================== PROTOCOLS =============================== */}
+      <section className="panel">
+        <h2>Protocols</h2>
+        {protocols.length === 0 ? (
+          <p className="empty">No protocol data loaded yet.</p>
+        ) : (
+          <div className="list">
+            {protocols.map((protocol) => {
+              const poolCount = protocol.pools?.length ?? 0;
+              const supportedChains = filterSupportedChains(protocol.chains);
+              return (
+                <article key={protocol.id}>
+                  <header>
+                    <div>
+                      <strong>{protocol.name}</strong>
+                      <span> | {protocol.type}</span>
+                    </div>
+                    <small>
+                      Chains: {supportedChains.map(formatChainName).join(", ")}
+                      {poolCount > 0 && <span> | Pools: {poolCount}</span>}
+                    </small>
+                  </header>
+                  <p>{protocol.description ?? "No description provided."}</p>
+                  {protocol.website && (
+                    <a href={protocol.website} target="_blank" rel="noreferrer">
+                      {protocol.website}
+                    </a>
+                  )}
                 </article>
               );
             })}
@@ -1025,84 +1108,6 @@ function App() {
         )}
       </section>
 
-      {/* =============================== USER DETAILS =============================== */}
-      <section className="panel">
-        <h2>User Details</h2>
-        <p>
-          Fetch authenticated user details including smart wallet, chains, and
-          protocol settings. Update profile to link your Smart Wallet before
-          creating session keys.
-        </p>
-        <div className="control-buttons">
-          <button onClick={fetchUserDetails} disabled={isBusy || !address}>
-            Get User Details
-          </button>
-          <button
-            onClick={updateUserProfile}
-            disabled={isBusy || !address || !walletInfo?.address}
-            title={
-              !walletInfo?.address
-                ? "Resolve Smart Wallet first"
-                : "Update profile with Smart Wallet address"
-            }
-          >
-            Update Profile
-          </button>
-        </div>
-
-        {userDetails?.user ? (
-          <div className="detail-grid">
-            <div className="detail-row">
-              <span>User ID</span>
-              <code>{userDetails.user.id}</code>
-            </div>
-            <div className="detail-row">
-              <span>Address</span>
-              <code>{truncate(userDetails.user.address, 10)}</code>
-            </div>
-            <div className="detail-row">
-              <span>Smart Wallet</span>
-              <code>{truncate(userDetails.user.smartWallet, 10)}</code>
-            </div>
-            <div className="detail-row">
-              <span>Chains</span>
-              <strong>
-                {userDetails.user.chains?.map(formatChainName).join(", ") ||
-                  "None"}
-              </strong>
-            </div>
-            <div className="detail-row">
-              <span>Strategy</span>
-              <strong>{userDetails.user.strategy || "Default"}</strong>
-            </div>
-            <div className="detail-row">
-              <span>Active Session Key</span>
-              <strong>
-                {userDetails.user.hasActiveSessionKey ? "Yes" : "No"}
-              </strong>
-            </div>
-            <div className="detail-row">
-              <span>Auto Select Protocols</span>
-              <strong>
-                {userDetails.user.autoSelectProtocols ? "Yes" : "No"}
-              </strong>
-            </div>
-            <div className="detail-row">
-              <span>Omni Account</span>
-              <strong>{userDetails.user.omniAccount ? "Yes" : "No"}</strong>
-            </div>
-            <div className="detail-row">
-              <span>Cross-chain Strategy</span>
-              <strong>
-                {userDetails.user.crosschainStrategy ? "Yes" : "No"}
-              </strong>
-            </div>
-          </div>
-        ) : (
-          <p className="empty">Fetch user details to view profile.</p>
-        )}
-      </section>
-
       {/* =============================== PROTOCOL MANAGEMENT =============================== */}
       <section className="panel">
         <h2>Protocol Management</h2>
@@ -1132,6 +1137,7 @@ function App() {
             <strong>Select Protocols ({protocols.length} available)</strong>
             {protocols.map((protocol) => {
               const isSelected = selectedProtocols.includes(protocol.id);
+              const supportedChains = filterSupportedChains(protocol.chains);
               return (
                 <article
                   key={protocol.id}
@@ -1164,7 +1170,7 @@ function App() {
                       <span> | {protocol.type}</span>
                     </div>
                     <small>
-                      Chains: {protocol.chains.map(formatChainName).join(", ")}
+                      Chains: {supportedChains.map(formatChainName).join(", ")}
                     </small>
                   </header>
                   <p>{protocol.description ?? "No description provided."}</p>
@@ -1176,105 +1182,6 @@ function App() {
           <p className="empty">
             Load protocols to select and update your preferences.
           </p>
-        )}
-      </section>
-
-      {/* =============================== TVL & VOLUME =============================== */}
-      <section className="panel">
-        <h2>Platform Stats (TVL & Volume)</h2>
-        <p>
-          Get total value locked and transaction volume across all ZyFAI
-          accounts.
-        </p>
-        <div className="control-buttons">
-          <button onClick={fetchTVL} disabled={isBusy}>
-            Get TVL
-          </button>
-          <button onClick={fetchVolume} disabled={isBusy}>
-            Get Volume
-          </button>
-        </div>
-
-        <div className="stats-grid">
-          {tvlData && (
-            <div className="stat-card">
-              <span className="stat-label">Total TVL</span>
-              <span className="stat-value">{formatUsd(tvlData.totalTvl)}</span>
-              {tvlData.byChain && Object.keys(tvlData.byChain).length > 0 && (
-                <div className="stat-breakdown">
-                  {Object.entries(tvlData.byChain).map(([chain, value]) => (
-                    <div key={chain}>
-                      {formatChainName(chain)}: {formatUsd(value)}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-          {volumeData && (
-            <div className="stat-card">
-              <span className="stat-label">Total Volume</span>
-              <span className="stat-value">
-                {formatUsd(volumeData.volumeInUSD)}
-              </span>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* =============================== ACTIVE WALLETS =============================== */}
-      <section className="panel">
-        <h2>Active Wallets</h2>
-        <p>Get active smart wallets on the selected chain.</p>
-        <div className="control-buttons">
-          <button onClick={fetchActiveWallets} disabled={isBusy}>
-            Get Active Wallets
-          </button>
-          {/* <button onClick={fetchSmartWalletByEoa} disabled={isBusy || !address}>
-            Get My Smart Wallet
-          </button> */}
-        </div>
-
-        {activeWallets && (
-          <div className="callout">
-            <strong>
-              Active Wallets on {formatChainName(activeWallets.chainId)}
-            </strong>
-            <p>Count: {activeWallets.count}</p>
-            {activeWallets.wallets.slice(0, 5).map((w, i) => (
-              <div key={i}>
-                <code>{truncate(w.smartWallet, 12)}</code> · Chains:{" "}
-                {w.chains.map(formatChainName).join(", ")}
-              </div>
-            ))}
-            {activeWallets.count > 5 && (
-              <p className="empty">...and {activeWallets.count - 5} more</p>
-            )}
-          </div>
-        )}
-
-        {smartWalletByEoa && (
-          <div className="detail-grid" style={{ marginTop: "1rem" }}>
-            <div className="detail-row">
-              <span>EOA</span>
-              <code>{truncate(smartWalletByEoa.eoa, 10)}</code>
-            </div>
-            <div className="detail-row">
-              <span>Smart Wallet</span>
-              <code>
-                {smartWalletByEoa.smartWallet
-                  ? truncate(smartWalletByEoa.smartWallet, 10)
-                  : "None"}
-              </code>
-            </div>
-            <div className="detail-row">
-              <span>Chains</span>
-              <strong>
-                {smartWalletByEoa.chains.map(formatChainName).join(", ") ||
-                  "None"}
-              </strong>
-            </div>
-          </div>
         )}
       </section>
 
@@ -1889,6 +1796,105 @@ function App() {
                 </article>
               );
             })}
+          </div>
+        )}
+      </section>
+
+      {/* =============================== TVL & VOLUME =============================== */}
+      <section className="panel">
+        <h2>Platform Stats (TVL & Volume)</h2>
+        <p>
+          Get total value locked and transaction volume across all ZyFAI
+          accounts.
+        </p>
+        <div className="control-buttons">
+          <button onClick={fetchTVL} disabled={isBusy}>
+            Get TVL
+          </button>
+          <button onClick={fetchVolume} disabled={isBusy}>
+            Get Volume
+          </button>
+        </div>
+
+        <div className="stats-grid">
+          {tvlData && (
+            <div className="stat-card">
+              <span className="stat-label">Total TVL</span>
+              <span className="stat-value">{formatUsd(tvlData.totalTvl)}</span>
+              {tvlData.byChain && Object.keys(tvlData.byChain).length > 0 && (
+                <div className="stat-breakdown">
+                  {Object.entries(tvlData.byChain).map(([chain, value]) => (
+                    <div key={chain}>
+                      {formatChainName(chain)}: {formatUsd(value)}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {volumeData && (
+            <div className="stat-card">
+              <span className="stat-label">Total Volume</span>
+              <span className="stat-value">
+                {formatUsd(volumeData.volumeInUSD)}
+              </span>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* =============================== ACTIVE WALLETS =============================== */}
+      <section className="panel">
+        <h2>Active Wallets</h2>
+        <p>Get active smart wallets on the selected chain.</p>
+        <div className="control-buttons">
+          <button onClick={fetchActiveWallets} disabled={isBusy}>
+            Get Active Wallets
+          </button>
+          {/* <button onClick={fetchSmartWalletByEoa} disabled={isBusy || !address}>
+            Get My Smart Wallet
+          </button> */}
+        </div>
+
+        {activeWallets && (
+          <div className="callout">
+            <strong>
+              Active Wallets on {formatChainName(activeWallets.chainId)}
+            </strong>
+            <p>Count: {activeWallets.count}</p>
+            {activeWallets.wallets.slice(0, 5).map((w, i) => (
+              <div key={i}>
+                <code>{truncate(w.smartWallet, 12)}</code> · Chains:{" "}
+                {w.chains.map(formatChainName).join(", ")}
+              </div>
+            ))}
+            {activeWallets.count > 5 && (
+              <p className="empty">...and {activeWallets.count - 5} more</p>
+            )}
+          </div>
+        )}
+
+        {smartWalletByEoa && (
+          <div className="detail-grid" style={{ marginTop: "1rem" }}>
+            <div className="detail-row">
+              <span>EOA</span>
+              <code>{truncate(smartWalletByEoa.eoa, 10)}</code>
+            </div>
+            <div className="detail-row">
+              <span>Smart Wallet</span>
+              <code>
+                {smartWalletByEoa.smartWallet
+                  ? truncate(smartWalletByEoa.smartWallet, 10)
+                  : "None"}
+              </code>
+            </div>
+            <div className="detail-row">
+              <span>Chains</span>
+              <strong>
+                {smartWalletByEoa.chains.map(formatChainName).join(", ") ||
+                  "None"}
+              </strong>
+            </div>
           </div>
         )}
       </section>
