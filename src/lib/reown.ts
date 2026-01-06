@@ -38,8 +38,8 @@ createAppKit({
   projectId,
   networks: supportedNetworks,
   metadata: {
-    name: "ZyFAI SDK + Reown Demo",
-    description: "Minimal front-end that implements the ZyFAI SDK methods",
+    name: "Zyfai SDK + Reown Demo",
+    description: "Minimal front-end that implements the Zyfai SDK methods",
     url: metadataUrl,
     icons: [`${metadataUrl}/vite.svg`],
   },

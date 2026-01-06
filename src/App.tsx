@@ -180,7 +180,6 @@ function App() {
 
     return new ZyfaiSDK({
       apiKey,
-      environment: "production",
     });
   }, []);
 
@@ -189,14 +188,14 @@ function App() {
 
     let active = true;
 
-    setStatus("Linking Reown wallet to ZyFAI SDK…");
+    setStatus("Linking Reown wallet to Zyfai SDK…");
     sdk
       .connectAccount(
         walletClient,
         walletClient.chain?.id as SupportedChainId | undefined
       )
       .then(() => {
-        if (active) setStatus("Wallet ready. You can now fetch ZyFAI data.");
+        if (active) setStatus("Wallet ready. You can now fetch Zyfai data.");
       })
       .catch((error) => {
         if (active)
@@ -248,7 +247,7 @@ function App() {
     if (!ensureWallet()) return;
     try {
       setIsBusy(true);
-      setStatus("Fetching ZyFAI positions…");
+      setStatus("Fetching Zyfai positions…");
       const response = await sdk!.getPositions(address!, selectedChain);
       console.log("response", response);
       const positionsArray = response.positions ?? [];
@@ -299,7 +298,11 @@ function App() {
     try {
       setIsBusy(true);
       setStatus("Deploying Safe smart wallet…");
-      const response = await sdk!.deploySafe(address!, selectedChain);
+      const response = await sdk!.deploySafe(
+        address!,
+        selectedChain,
+        "degen_strategy"
+      );
       setDeploymentResult(response);
       setStatus(
         response.success
@@ -325,7 +328,7 @@ function App() {
       setStatus("Creating + activating session key…");
       const response = await sdk!.createSessionKey(address!, selectedChain);
       setSessionInfo(response);
-      setStatus("Session key registered with ZyFAI API.");
+      setStatus("Session key registered with Zyfai API.");
       // Refresh user details to get updated hasActiveSessionKey status
       try {
         const updatedUser = await sdk!.getUserDetails();
@@ -350,7 +353,7 @@ function App() {
     }
     try {
       setIsBusy(true);
-      setStatus("Depositing funds to ZyFAI…");
+      setStatus("Depositing funds to Zyfai…");
       const response = await sdk!.depositFunds(
         address!,
         selectedChain,
@@ -376,8 +379,8 @@ function App() {
       const isFullWithdraw = !withdrawAmount || withdrawAmount === "0";
       setStatus(
         isFullWithdraw
-          ? "Withdrawing all funds from ZyFAI…"
-          : `Withdrawing ${withdrawAmount} from ZyFAI…`
+          ? "Withdrawing all funds from Zyfai…"
+          : `Withdrawing ${withdrawAmount} from Zyfai…`
       );
       const response = await sdk!.withdrawFunds(
         address!,
@@ -779,7 +782,7 @@ function App() {
     <div className="app">
       <header>
         <div>
-          <h1>ZyFAI SDK + Reown AppKit</h1>
+          <h1>Zyfai SDK + Reown AppKit</h1>
           <p>
             Connect an EOA via Reown, then query protocols, positions, earnings,
             and more using the SDK.
@@ -1189,7 +1192,7 @@ function App() {
       <section className="panel">
         <h2>Deposit Funds</h2>
         <p>
-          Transfer tokens into your ZyFAI smart wallet for yield optimization.
+          Transfer tokens into your Zyfai smart wallet for yield optimization.
           The token address is automatically selected based on the chain (USDC
           for Base/Arbitrum, USDT for Plasma). Amounts are in least decimal
           units (e.g., 1 USDC = 1000000).
@@ -1239,7 +1242,7 @@ function App() {
       <section className="panel">
         <h2>Withdraw Funds</h2>
         <p>
-          Withdraw funds from your ZyFAI smart wallet. Leave amount empty for a
+          Withdraw funds from your Zyfai smart wallet. Leave amount empty for a
           full withdrawal. Funds will be sent to your EOA.
         </p>
 
@@ -1804,7 +1807,7 @@ function App() {
       <section className="panel">
         <h2>Platform Stats (TVL & Volume)</h2>
         <p>
-          Get total value locked and transaction volume across all ZyFAI
+          Get total value locked and transaction volume across all Zyfai
           accounts.
         </p>
         <div className="control-buttons">
