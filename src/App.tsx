@@ -20,7 +20,7 @@ import type {
   DebankPortfolioResponse,
   OpportunitiesResponse,
   DailyApyHistoryResponse,
-  RebalanceInfoResponse,
+  APYPerStrategyResponse,
   RebalanceFrequencyResponse,
 } from "@zyfai/sdk";
 import { ZyfaiSDK } from "@zyfai/sdk";
@@ -71,6 +71,8 @@ const formatChainName = (chainId: string | number) => {
       return "Arbitrum";
     case "9745":
       return "Plasma";
+    case "146":
+      return "Sonic";
     default:
       return `Chain ${id}`;
   }
@@ -157,8 +159,9 @@ function App() {
   const [apyHistory, setApyHistory] = useState<DailyApyHistoryResponse | null>(
     null
   );
-  const [rebalanceInfo, setRebalanceInfo] =
-    useState<RebalanceInfoResponse | null>(null);
+  const [apyPerStrategy, setApyPerStrategy] =
+    useState<APYPerStrategyResponse | null>(null);
+
   const [rebalanceFrequency, setRebalanceFrequency] =
     useState<RebalanceFrequencyResponse | null>(null);
 
@@ -500,6 +503,21 @@ function App() {
     }
   };
 
+  const fetchApyPerStrategy = async () => {
+    if (!ensureSdk()) return;
+    try {
+      setIsBusy(true);
+      setStatus("Fetching APY per strategy…");
+      const response = await sdk!.getAPYPerStrategy(false, '7d', 'safe');
+      console.log('response', response);
+      setApyPerStrategy(response);
+    } catch (error) {
+      setStatus(`Failed to get APY per strategy: ${(error as Error).message}`);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const fetchActiveWallets = async () => {
     if (!ensureSdk()) return;
     try {
@@ -710,21 +728,6 @@ function App() {
     }
   };
 
-  const fetchRebalanceInfo = async () => {
-    if (!ensureSdk()) return;
-    try {
-      setIsBusy(true);
-      setStatus("Fetching rebalance info…");
-      const response = await sdk!.getRebalanceInfo();
-      setRebalanceInfo(response);
-      setStatus(`Loaded ${response.count} rebalance events.`);
-    } catch (error) {
-      setStatus(`Failed to get rebalance info: ${(error as Error).message}`);
-    } finally {
-      setIsBusy(false);
-    }
-  };
-
   const fetchRebalanceFrequency = async () => {
     if (!ensureWallet()) return;
     if (!walletInfo?.address) {
@@ -772,8 +775,8 @@ function App() {
     setSafeOpportunities(null);
     setDegenStrategies(null);
     setApyHistory(null);
-    setRebalanceInfo(null);
     setRebalanceFrequency(null);
+    setApyPerStrategy(null);
     setSelectedProtocols([]);
     setStatus("Wallet disconnected.");
   };
@@ -1696,14 +1699,10 @@ function App() {
       {/* =============================== REBALANCE =============================== */}
       <section className="panel">
         <h2>Rebalance</h2>
-        <p>Get rebalance events and frequency tier for your wallet.</p>
+        <p>Get rebalance frequency tier for your wallet.</p>
         <div className="control-buttons">
-          <button onClick={fetchRebalanceInfo} disabled={isBusy}>
-            Get Rebalance Info
-          </button>
           <button
             onClick={fetchRebalanceFrequency}
-            disabled={isBusy || !walletInfo?.address}
           >
             Get Rebalance Frequency
           </button>
@@ -1727,80 +1726,6 @@ function App() {
             )}
           </div>
         )}
-
-        {rebalanceInfo && rebalanceInfo.data.length > 0 && (
-          <div className="list" style={{ marginTop: "1rem" }}>
-            <strong>Recent Rebalances ({rebalanceInfo.count})</strong>
-            {rebalanceInfo.data.slice(0, 5).map((r, idx) => {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const rebalance = r as any;
-              const chainId = rebalance.chainId ?? rebalance.chain_id;
-              const totalRebalances =
-                rebalance.totalRebalances ?? rebalance.total_rebalances;
-              const sameChainRebalances =
-                rebalance.sameChainRebalances ??
-                rebalance.same_chain_rebalances;
-              const crossChainRebalances =
-                rebalance.crossChainRebalances ??
-                rebalance.cross_chain_rebalances;
-              const avgApy = rebalance.averageApy ?? rebalance.average_apy;
-
-              return (
-                <article key={r.id || idx}>
-                  <header>
-                    <div>
-                      <strong>
-                        {chainId ? formatChainName(chainId) : "Multi-chain"}
-                      </strong>
-                      {totalRebalances != null && (
-                        <span> · {totalRebalances} rebalances</span>
-                      )}
-                    </div>
-                    <small>
-                      {r.timestamp
-                        ? new Date(r.timestamp).toLocaleString()
-                        : "N/A"}
-                    </small>
-                  </header>
-                  <div className="detail-grid" style={{ marginTop: "0.5rem" }}>
-                    {rebalance.amount != null && (
-                      <div className="detail-row">
-                        <span>Amount</span>
-                        <strong>
-                          {formatUsd(Number(rebalance.amount) / 1e6)}
-                        </strong>
-                      </div>
-                    )}
-                    {avgApy != null && (
-                      <div className="detail-row">
-                        <span>Avg APY</span>
-                        <strong>{Number(avgApy).toFixed(2)}%</strong>
-                      </div>
-                    )}
-                    {sameChainRebalances != null && (
-                      <div className="detail-row">
-                        <span>Same-chain</span>
-                        <strong>{String(sameChainRebalances)}</strong>
-                      </div>
-                    )}
-                    {crossChainRebalances != null &&
-                      Number(crossChainRebalances) > 0 && (
-                        <div className="detail-row">
-                          <span>Cross-chain</span>
-                          <strong>{String(crossChainRebalances)}</strong>
-                        </div>
-                      )}
-                  </div>
-                  <div style={{ marginTop: "0.5rem" }}>
-                    {rebalance.isCrossChain && (
-                      <span className="badge">Cross-chain</span>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
       </section>
 
       {/* =============================== TVL & VOLUME =============================== */}
@@ -1811,6 +1736,9 @@ function App() {
           accounts.
         </p>
         <div className="control-buttons">
+          <button onClick={fetchApyPerStrategy} disabled={isBusy}>
+            Get APY per Strategy
+          </button>
           <button onClick={fetchTVL} disabled={isBusy}>
             Get TVL
           </button>
@@ -1841,6 +1769,19 @@ function App() {
               <span className="stat-value">
                 {formatUsd(volumeData.volumeInUSD)}
               </span>
+            </div>
+          )}
+          {apyPerStrategy && (
+            <div className="stat-card">
+              <span className="stat-label">APY per Strategy</span>
+              <div className="stat-breakdown">
+                {apyPerStrategy.data.map((chain) => (
+                  <div key={chain.chain_id}>
+                    {formatChainName(chain.chain_id)} -{" "}
+                    {chain.average_apy_without_fee.toFixed(2)}%
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
