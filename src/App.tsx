@@ -508,7 +508,7 @@ function App() {
     try {
       setIsBusy(true);
       setStatus("Fetching APY per strategy…");
-      const response = await sdk!.getAPYPerStrategy(false, '7d', 'safe');
+      const response = await sdk!.getAPYPerStrategy(false, 7, 'safe');
       console.log('response', response);
       setApyPerStrategy(response);
     } catch (error) {
