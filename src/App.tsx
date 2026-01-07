@@ -509,7 +509,6 @@ function App() {
       setIsBusy(true);
       setStatus("Fetching APY per strategy…");
       const response = await sdk!.getAPYPerStrategy(false, 7, 'safe');
-      console.log('response', response);
       setApyPerStrategy(response);
     } catch (error) {
       setStatus(`Failed to get APY per strategy: ${(error as Error).message}`);
@@ -1773,7 +1772,7 @@ function App() {
           )}
           {apyPerStrategy && (
             <div className="stat-card">
-              <span className="stat-label">APY per Strategy</span>
+              <span className="stat-label">APY per Strategy Without Fees (7D)</span>
               <div className="stat-breakdown">
                 {apyPerStrategy.data.map((chain) => (
                   <div key={chain.chain_id}>
