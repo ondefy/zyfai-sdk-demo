@@ -304,7 +304,7 @@ function App() {
       const response = await sdk!.deploySafe(
         address!,
         selectedChain,
-        "degen_strategy"
+        "aggressive"
       );
       setDeploymentResult(response);
       setStatus(
@@ -508,7 +508,7 @@ function App() {
     try {
       setIsBusy(true);
       setStatus("Fetching APY per strategy…");
-      const response = await sdk!.getAPYPerStrategy(false, 7, 'safe');
+      const response = await sdk!.getAPYPerStrategy(false, 7, 'conservative');
       setApyPerStrategy(response);
     } catch (error) {
       setStatus(`Failed to get APY per strategy: ${(error as Error).message}`);
@@ -673,13 +673,13 @@ function App() {
     if (!ensureSdk()) return;
     try {
       setIsBusy(true);
-      setStatus("Fetching safe opportunities…");
-      const response = await sdk!.getSafeOpportunities(selectedChain);
+      setStatus("Fetching conservative opportunities…");
+      const response = await sdk!.getConservativeOpportunities(selectedChain);
       setSafeOpportunities(response);
-      setStatus(`Loaded ${response.data.length} safe opportunities.`);
+      setStatus(`Loaded ${response.data.length} conservative opportunities.`);
     } catch (error) {
       setStatus(
-        `Failed to get safe opportunities: ${(error as Error).message}`
+        `Failed to get conservative opportunities: ${(error as Error).message}`
       );
     } finally {
       setIsBusy(false);
@@ -690,12 +690,12 @@ function App() {
     if (!ensureSdk()) return;
     try {
       setIsBusy(true);
-      setStatus("Fetching degen strategies…");
-      const response = await sdk!.getDegenStrategies(selectedChain);
+      setStatus("Fetching aggressive opportunities…");
+      const response = await sdk!.getAggressiveOpportunities(selectedChain);
       setDegenStrategies(response);
-      setStatus(`Loaded ${response.data.length} degen strategies.`);
+      setStatus(`Loaded ${response.data.length} aggressive opportunities.`);
     } catch (error) {
-      setStatus(`Failed to get degen strategies: ${(error as Error).message}`);
+      setStatus(`Failed to get aggressive opportunities: ${(error as Error).message}`);
     } finally {
       setIsBusy(false);
     }
@@ -1622,20 +1622,20 @@ function App() {
       {/* =============================== OPPORTUNITIES =============================== */}
       <section className="panel">
         <h2>Yield Opportunities</h2>
-        <p>Explore safe and degen yield strategies on the selected chain.</p>
+        <p>Explore conservative and aggressive yield opportunities on the selected chain.</p>
         <div className="control-buttons">
           <button onClick={fetchSafeOpportunities} disabled={isBusy}>
-            Get Safe Opportunities
+            Get Conservative Opportunities
           </button>
           <button onClick={fetchDegenStrategies} disabled={isBusy}>
-            Get Degen Strategies
+            Get Aggressive Opportunities
           </button>
         </div>
 
         {safeOpportunities && safeOpportunities.data.length > 0 && (
           <div className="list" style={{ marginTop: "1rem" }}>
             <strong>
-              Safe Opportunities ({safeOpportunities.data.length})
+              Conservative Opportunities ({safeOpportunities.data.length})
             </strong>
             {safeOpportunities.data.slice(0, 5).map((opp) => {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1664,7 +1664,7 @@ function App() {
 
         {degenStrategies && degenStrategies.data.length > 0 && (
           <div className="list" style={{ marginTop: "1rem" }}>
-            <strong>Degen Strategies ({degenStrategies.data.length})</strong>
+            <strong>Aggressive Opportunities ({degenStrategies.data.length})</strong>
             {degenStrategies.data.slice(0, 5).map((strat) => {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const data = strat as any;

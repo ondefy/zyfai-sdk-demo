@@ -13,13 +13,13 @@ importers:
         version: 1.7.13(@types/react@19.2.7)(bufferutil@4.1.0)(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.5)
       '@reown/appkit-adapter-wagmi':
         specifier: 1.7.13
-        version: 1.7.13(6vbbouijcip73uf2skv5ydw7xq)
+        version: 1.7.13(61bdcea1a4fff3076ef5d9804d55afe7)
       '@tanstack/react-query':
         specifier: 5.62.10
         version: 5.62.10(react@18.3.1)
       '@zyfai/sdk':
-        specifier: ^0.1.31
-        version: 0.1.31(ethers@6.16.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(viem@2.40.3(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.5))
+        specifier: 0.2.2
+        version: 0.2.2(ethers@6.16.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(viem@2.40.3(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.5))
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -1101,8 +1101,8 @@ packages:
   '@walletconnect/window-metadata@1.0.1':
     resolution: {integrity: sha512-9koTqyGrM2cqFRW517BPY/iEtUDx2r1+Pwwu5m7sJ7ka79wi3EyqhqcICk/yDmv6jAS1rjKgTKXlEhanYjijcA==}
 
-  '@zyfai/sdk@0.1.31':
-    resolution: {integrity: sha512-RXmCztTqmMCpVOZ7GrRRpCcLcZrymzSln1xfreaA40ojgkAAKLy2/3Ws7+5NwjZqG2RKD0sx+scWwDnN5B9Mpg==}
+  '@zyfai/sdk@0.2.2':
+    resolution: {integrity: sha512-yWO1iTgH5KybxBpo+Vh27HvReb9wewDFizuXVWVuQY+xtNG6pjZCjk0VAmsj1bE97EGbE8EXGvCI+eaBsJzgKA==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       viem: ^2.0.0
@@ -3167,7 +3167,7 @@ snapshots:
 
   '@paulmillr/qr@0.2.1': {}
 
-  '@reown/appkit-adapter-wagmi@1.7.13(6vbbouijcip73uf2skv5ydw7xq)':
+  '@reown/appkit-adapter-wagmi@1.7.13(61bdcea1a4fff3076ef5d9804d55afe7)':
     dependencies:
       '@reown/appkit': 1.7.13(@types/react@19.2.7)(bufferutil@4.1.0)(react@18.3.1)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.5)
       '@reown/appkit-common': 1.7.13(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.5)
@@ -4869,7 +4869,7 @@ snapshots:
       '@walletconnect/window-getters': 1.0.1
       tslib: 1.14.1
 
-  '@zyfai/sdk@0.1.31(ethers@6.16.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(viem@2.40.3(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.5))':
+  '@zyfai/sdk@0.2.2(ethers@6.16.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(viem@2.40.3(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.5))':
     dependencies:
       '@rhinestone/module-sdk': 0.2.11(viem@2.40.3(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.5))
       axios: 1.13.2
