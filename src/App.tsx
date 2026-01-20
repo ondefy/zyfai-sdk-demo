@@ -165,6 +165,9 @@ function App() {
   const [rebalanceFrequency, setRebalanceFrequency] =
     useState<RebalanceFrequencyResponse | null>(null);
 
+  // Read-only lookup state (no wallet connection required)
+  const [lookupAddress, setLookupAddress] = useState("");
+
   // Additional input states
   const [earningsStartDate, setEarningsStartDate] = useState("");
   const [earningsEndDate, setEarningsEndDate] = useState("");
@@ -269,6 +272,54 @@ function App() {
       }
     } catch (error) {
       setStatus(`Failed to load positions: ${(error as Error).message}`);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  /**
+   * Read-only: fetch positions for any EOA address without requiring wallet connection
+   */
+  const fetchPositionsForAddress = async () => {
+    if (!ensureSdk()) return;
+    const targetAddress = lookupAddress.trim() || address;
+
+    if (!targetAddress) {
+      setStatus("Enter a wallet address to fetch positions.");
+      return;
+    }
+
+    try {
+      setIsBusy(true);
+      setStatus("Fetching Zyfai positions (read-only) …");
+      const response = await sdk!.getPositions(
+        targetAddress,
+        selectedChain
+      );
+      const positionsArray = response.positions ?? [];
+      setPositions(positionsArray);
+      if (positionsArray.length === 0) {
+        setStatus("No active positions found for this address.");
+      } else if (
+        positionsArray.some(
+          (position) =>
+            position.positions === null || position.positions?.length === 0
+        )
+      ) {
+        setStatus("No positions found for this address.");
+      } else {
+        setStatus(
+          `Loaded ${positionsArray.length} position bundles for ${truncate(
+            targetAddress
+          , 6)}.`
+        );
+      }
+    } catch (error) {
+      setStatus(
+        `Failed to load positions for address: ${
+          (error as Error).message
+        }`
+      );
     } finally {
       setIsBusy(false);
     }
@@ -443,6 +494,26 @@ function App() {
       setUserDetails(response);
     } catch (error) {
       setStatus(`Failed to update profile: ${(error as Error).message}`);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const updateUserStrategy = async (
+    nextStrategy: "conservative" | "aggressive"
+  ) => {
+    if (!ensureWallet()) return;
+    try {
+      setIsBusy(true);
+      setStatus(`Updating strategy to ${nextStrategy}…`);
+      await sdk!.updateUserProfile({
+        strategy: nextStrategy,
+      });
+      const response = await sdk!.getUserDetails();
+      setUserDetails(response);
+      setStatus(`Strategy updated to ${nextStrategy}.`);
+    } catch (error) {
+      setStatus(`Failed to update strategy: ${(error as Error).message}`);
     } finally {
       setIsBusy(false);
     }
@@ -702,16 +773,11 @@ function App() {
   };
 
   const fetchApyHistory = async () => {
-    if (!ensureWallet()) return;
-    if (!walletInfo?.address) {
-      setStatus("Please resolve smart wallet first.");
-      return;
-    }
     try {
       setIsBusy(true);
       setStatus("Fetching APY history…");
       const response = await sdk!.getDailyApyHistory(
-        walletInfo.address,
+        walletInfo?.address ?? "",
         apyHistoryDays
       );
       setApyHistory(response);
@@ -722,6 +788,48 @@ function App() {
       );
     } catch (error) {
       setStatus(`Failed to get APY history: ${(error as Error).message}`);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  /**
+   * Read-only: resolve Safe and fetch APY history for any EOA address
+   */
+  const fetchApyHistoryForAddress = async () => {
+    if (!ensureSdk()) return;
+    const targetAddress = lookupAddress.trim() || address;
+
+    if (!targetAddress) {
+      setStatus("Enter a wallet address to fetch APY history.");
+      return;
+    }
+
+    try {
+      setIsBusy(true);
+      setStatus("Resolving smart wallet and fetching APY history…");
+      const smartWallet = await sdk!.getSmartWalletAddress(
+        targetAddress,
+        selectedChain
+      );
+      setWalletInfo(smartWallet);
+
+      const response = await sdk!.getDailyApyHistory(
+        smartWallet.address,
+        apyHistoryDays
+      );
+      setApyHistory(response);
+      setStatus(
+        `APY history loaded. Average: ${
+          response.averageWeightedApy?.toFixed(2) ?? 0
+        }%`
+      );
+    } catch (error) {
+      setStatus(
+        `Failed to get APY history for address: ${
+          (error as Error).message
+        }`
+      );
     } finally {
       setIsBusy(false);
     }
@@ -837,6 +945,20 @@ function App() {
           >
             Update Profile
           </button>
+        <div className="control-buttons">
+          <button
+            onClick={() => updateUserStrategy("conservative")}
+            disabled={isBusy || !address}
+          >
+            Set Conservative Strategy
+          </button>
+          <button
+            onClick={() => updateUserStrategy("aggressive")}
+            disabled={isBusy || !address}
+          >
+            Set Aggressive Strategy
+          </button>
+        </div>
         </div>
 
         {userDetails?.user ? (
@@ -886,6 +1008,35 @@ function App() {
         ) : (
           <p className="empty">Fetch user details to view profile.</p>
         )}
+      </section>
+
+
+      {/* =========================== READ-ONLY ADDRESS LOOKUP =========================== */}
+      <section className="panel">
+        <h2>Read-only Address Lookup</h2>
+        <p>
+          Fetch positions and APY for any wallet address using the Zyfai Data
+          API. No wallet connection or signing required.
+        </p>
+        <div className="controls">
+          <label>
+            Wallet Address
+            <input
+              type="text"
+              placeholder="0x..."
+              value={lookupAddress}
+              onChange={(event) => setLookupAddress(event.target.value)}
+            />
+          </label>
+          <div className="control-buttons">
+            <button onClick={fetchPositionsForAddress} disabled={isBusy}>
+              Fetch Positions
+            </button>
+            <button onClick={fetchApyHistoryForAddress} disabled={isBusy}>
+              Fetch APY History
+            </button>
+          </div>
+        </div>
       </section>
 
       <section className="controls">
