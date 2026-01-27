@@ -22,6 +22,7 @@ import type {
   DailyApyHistoryResponse,
   APYPerStrategyResponse,
   RebalanceFrequencyResponse,
+  SdkKeyTVLResponse,
 } from "@zyfai/sdk";
 import { ZyfaiSDK } from "@zyfai/sdk";
 import { useEffect, useMemo, useState } from "react";
@@ -164,6 +165,18 @@ function App() {
 
   const [rebalanceFrequency, setRebalanceFrequency] =
     useState<RebalanceFrequencyResponse | null>(null);
+
+  // SDK Key methods state
+  const [sdkAllowedWallets, setSdkAllowedWallets] = useState<{
+    success: boolean;
+    allowedWallets: string[];
+    metadata: {
+      sdkKeyId: string;
+      clientName: string;
+      walletsCount: number;
+    };
+  } | null>(null);
+  const [sdkKeyTvl, setSdkKeyTvl] = useState<SdkKeyTVLResponse | null>(null);
 
   // Read-only lookup state (no wallet connection required)
   const [lookupAddress, setLookupAddress] = useState("");
@@ -858,6 +871,46 @@ function App() {
     }
   };
 
+  // ============================================================================
+  // SDK Key Methods
+  // ============================================================================
+
+  const fetchSdkAllowedWallets = async () => {
+    if (!ensureSdk()) return;
+    try {
+      setIsBusy(true);
+      setStatus("Fetching SDK allowed wallets…");
+      const response = await sdk!.getSdkAllowedWallets();
+      setSdkAllowedWallets(response);
+      setStatus(
+        `Loaded ${response.metadata.walletsCount} allowed wallet(s) for SDK key: ${response.metadata.clientName}`
+      );
+    } catch (error) {
+      setStatus(
+        `Failed to get SDK allowed wallets: ${(error as Error).message}`
+      );
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const fetchSdkKeyTvl = async () => {
+    if (!ensureSdk()) return;
+    try {
+      setIsBusy(true);
+      setStatus("Fetching SDK key TVL…");
+      const response = await sdk!.getSdkKeyTVL();
+      setSdkKeyTvl(response);
+      setStatus(
+        `Loaded TVL for ${response.metadata?.walletsCount || 0} wallet(s). Total: ${formatUsd(response.totalTvl)}`
+      );
+    } catch (error) {
+      setStatus(`Failed to get SDK key TVL: ${(error as Error).message}`);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const clearAllState = () => {
     disconnect();
     setProtocols([]);
@@ -884,6 +937,8 @@ function App() {
     setApyHistory(null);
     setRebalanceFrequency(null);
     setApyPerStrategy(null);
+    setSdkAllowedWallets(null);
+    setSdkKeyTvl(null);
     setSelectedProtocols([]);
     setStatus("Wallet disconnected.");
   };
@@ -1935,6 +1990,137 @@ function App() {
             </div>
           )}
         </div>
+      </section>
+
+      {/* =============================== SDK KEY METHODS =============================== */}
+      <section className="panel">
+        <h2>SDK Key Information</h2>
+        <p>
+          Get allowed wallets and total TVL for your SDK API key. No wallet
+          connection required.
+        </p>
+        <div className="control-buttons">
+          <button onClick={fetchSdkAllowedWallets} disabled={isBusy}>
+            Get Allowed Wallets
+          </button>
+          <button onClick={fetchSdkKeyTvl} disabled={isBusy}>
+            Get SDK Key TVL
+          </button>
+        </div>
+
+        {sdkAllowedWallets && (
+          <div className="callout">
+            <strong>SDK Key: {sdkAllowedWallets.metadata.clientName}</strong>
+            <div className="detail-grid" style={{ marginTop: "1rem" }}>
+              <div className="detail-row">
+                <span>SDK Key ID</span>
+                <code>{truncate(sdkAllowedWallets.metadata.sdkKeyId, 12)}</code>
+              </div>
+              <div className="detail-row">
+                <span>Total Wallets</span>
+                <strong>{sdkAllowedWallets.metadata.walletsCount}</strong>
+              </div>
+            </div>
+            {sdkAllowedWallets.allowedWallets.length > 0 && (
+              <div style={{ marginTop: "1rem" }}>
+                <strong>Allowed Wallets:</strong>
+                <div className="list" style={{ marginTop: "0.5rem" }}>
+                  {sdkAllowedWallets.allowedWallets
+                    .slice(0, 10)
+                    .map((wallet, i) => (
+                      <div key={i} style={{ padding: "0.5rem 0" }}>
+                        <code>{truncate(wallet, 12)}</code>
+                      </div>
+                    ))}
+                  {sdkAllowedWallets.allowedWallets.length > 10 && (
+                    <p className="empty">
+                      ...and {sdkAllowedWallets.allowedWallets.length - 10} more
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {sdkKeyTvl && (
+          <div className="callout" style={{ marginTop: "1rem" }}>
+            <strong>
+              SDK TVL: {sdkKeyTvl.metadata?.clientName || "Unknown"}
+            </strong>
+            <div className="detail-grid" style={{ marginTop: "1rem" }}>
+              <div className="detail-row">
+                <span>Total Wallets</span>
+                <strong>{sdkKeyTvl.metadata?.walletsCount || 0}</strong>
+              </div>
+              <div className="detail-row">
+                <span>Total TVL</span>
+                <strong>{formatUsd(sdkKeyTvl.totalTvl)}</strong>
+              </div>
+            </div>
+
+            {sdkKeyTvl.tvlByWallet && sdkKeyTvl.tvlByWallet.length > 0 && (
+              <div style={{ marginTop: "1rem" }}>
+                <strong>TVL by Wallet (Top 5):</strong>
+                <div className="list" style={{ marginTop: "0.5rem" }}>
+                  {sdkKeyTvl.tvlByWallet
+                    .sort((a, b) => b.tvl - a.tvl)
+                    .slice(0, 5)
+                    .map((wallet, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          padding: "0.75rem",
+                          border: "1px solid rgba(255,255,255,0.1)",
+                          borderRadius: "8px",
+                          marginBottom: "0.5rem",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            marginBottom: "0.5rem",
+                          }}
+                        >
+                          <code>{truncate(wallet.walletAddress, 12)}</code>
+                          <strong>{formatUsd(wallet.tvl)}</strong>
+                        </div>
+                        {wallet.positions && wallet.positions.length > 0 && (
+                          <div
+                            style={{
+                              fontSize: "0.85rem",
+                              opacity: 0.8,
+                              marginTop: "0.5rem",
+                            }}
+                          >
+                            <div>Positions:</div>
+                            {wallet.positions.map((pos, j) => (
+                              <div
+                                key={j}
+                                style={{
+                                  paddingLeft: "1rem",
+                                  marginTop: "0.25rem",
+                                }}
+                              >
+                                • {formatChainName(pos.chainId)}: {pos.protocol}{" "}
+                                - {formatUsd(pos.amount)}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                </div>
+                {sdkKeyTvl.tvlByWallet.length > 5 && (
+                  <p className="empty" style={{ marginTop: "0.5rem" }}>
+                    ...and {sdkKeyTvl.tvlByWallet.length - 5} more wallet(s)
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       {/* =============================== ACTIVE WALLETS =============================== */}
