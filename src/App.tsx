@@ -23,6 +23,7 @@ import type {
   APYPerStrategyResponse,
   RebalanceFrequencyResponse,
   SdkKeyTVLResponse,
+  BestOpportunityResponse,
 } from "@zyfai/sdk";
 import { ZyfaiSDK } from "@zyfai/sdk";
 import { useEffect, useMemo, useState } from "react";
@@ -177,7 +178,8 @@ function App() {
     };
   } | null>(null);
   const [sdkKeyTvl, setSdkKeyTvl] = useState<SdkKeyTVLResponse | null>(null);
-
+  const [bestOpportunity, setBestOpportunity] =
+    useState<BestOpportunityResponse | null>(null);
   // Read-only lookup state (no wallet connection required)
   const [lookupAddress, setLookupAddress] = useState("");
 
@@ -911,6 +913,34 @@ function App() {
     }
   };
 
+  const fetchBestOpportunity = async () => {
+    if (!ensureSdk()) return;
+    if (!walletInfo?.address) {
+      setStatus("Please get Smart Wallet address first");
+      return;
+    }
+    try {
+      setIsBusy(true);
+      setStatus("Fetching best opportunity…");
+      const response = await sdk!.getBestOpportunity(
+        walletInfo.address as `0x${string}`,
+        selectedChain
+      );
+      setBestOpportunity(response);
+      if (response.success && response.bestOpportunity) {
+        setStatus(
+          `Best opportunity: ${response.bestOpportunity.protocol} - ${response.bestOpportunity.pool} (${response.bestOpportunity.apy.toFixed(2)}% APY)`
+        );
+      } else {
+        setStatus(response.error || "No opportunities found");
+      }
+    } catch (error) {
+      setStatus(`Failed to get best opportunity: ${(error as Error).message}`);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const clearAllState = () => {
     disconnect();
     setProtocols([]);
@@ -939,6 +969,7 @@ function App() {
     setApyPerStrategy(null);
     setSdkAllowedWallets(null);
     setSdkKeyTvl(null);
+    setBestOpportunity(null);
     setSelectedProtocols([]);
     setStatus("Wallet disconnected.");
   };
@@ -2118,6 +2149,189 @@ function App() {
                   </p>
                 )}
               </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* =============================== BEST OPPORTUNITY =============================== */}
+      <section className="panel">
+        <h2>Best Opportunity</h2>
+        <p>
+          Get the best yield opportunity for your smart wallet based on your
+          strategy and enabled protocols.
+        </p>
+        <div className="actions">
+          <button
+            onClick={fetchBestOpportunity}
+            disabled={isBusy || !walletInfo?.address}
+          >
+            Get Best Opportunity
+          </button>
+        </div>
+
+        {bestOpportunity && (
+          <div className="callout">
+            {bestOpportunity.success ? (
+              <>
+                <div className="detail-grid" style={{ marginTop: "0.5rem" }}>
+                  <div className="detail-row">
+                    <span>Strategy</span>
+                    <strong>{bestOpportunity.strategy}</strong>
+                  </div>
+                  <div className="detail-row">
+                    <span>Chain</span>
+                    <strong>{formatChainName(bestOpportunity.chainId || 0)}</strong>
+                  </div>
+                  <div className="detail-row">
+                    <span>Should Rebalance</span>
+                    <strong
+                      style={{
+                        color: bestOpportunity.shouldRebalance
+                          ? "#22c55e"
+                          : "#f59e0b",
+                      }}
+                    >
+                      {bestOpportunity.shouldRebalance ? "Yes" : "No"}
+                    </strong>
+                  </div>
+                  {bestOpportunity.apyImprovement !== null &&
+                    bestOpportunity.apyImprovement !== undefined && (
+                      <div className="detail-row">
+                        <span>APY Improvement</span>
+                        <strong style={{ color: "#22c55e" }}>
+                          +{bestOpportunity.apyImprovement.toFixed(2)}%
+                        </strong>
+                      </div>
+                    )}
+                </div>
+
+                {bestOpportunity.currentPosition && (
+                  <div style={{ marginTop: "1rem" }}>
+                    <strong>Current Position:</strong>
+                    <div
+                      style={{
+                        padding: "0.75rem",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        borderRadius: "8px",
+                        marginTop: "0.5rem",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <span>
+                          {bestOpportunity.currentPosition.protocol} -{" "}
+                          {bestOpportunity.currentPosition.pool}
+                        </span>
+                        <strong>
+                          {bestOpportunity.currentPosition.apy.toFixed(2)}% APY
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {bestOpportunity.bestOpportunity && (
+                  <div style={{ marginTop: "1rem" }}>
+                    <strong>Best Opportunity:</strong>
+                    <div
+                      style={{
+                        padding: "0.75rem",
+                        border: "1px solid #22c55e",
+                        borderRadius: "8px",
+                        marginTop: "0.5rem",
+                        background: "rgba(34, 197, 94, 0.1)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          marginBottom: "0.5rem",
+                        }}
+                      >
+                        <span>
+                          {bestOpportunity.bestOpportunity.protocol} -{" "}
+                          {bestOpportunity.bestOpportunity.pool}
+                        </span>
+                        <strong style={{ color: "#22c55e" }}>
+                          {bestOpportunity.bestOpportunity.apy.toFixed(2)}% APY
+                        </strong>
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "0.85rem",
+                          opacity: 0.8,
+                          display: "grid",
+                          gridTemplateColumns: "1fr 1fr",
+                          gap: "0.25rem",
+                        }}
+                      >
+                        <span>Pool APY: {bestOpportunity.bestOpportunity.poolApy?.toFixed(2) || 0}%</span>
+                        <span>Rewards APY: {bestOpportunity.bestOpportunity.rewardsApy?.toFixed(2) || 0}%</span>
+                        <span>TVL: {formatUsd(bestOpportunity.bestOpportunity.tvl)}</span>
+                        <span>Zyfai TVL: {formatUsd(bestOpportunity.bestOpportunity.zyfiTvl)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {bestOpportunity.allOpportunities &&
+                  bestOpportunity.allOpportunities.length > 1 && (
+                    <div style={{ marginTop: "1rem" }}>
+                      <strong>
+                        All Opportunities ({bestOpportunity.allOpportunities.length}):
+                      </strong>
+                      <div className="list" style={{ marginTop: "0.5rem" }}>
+                        {bestOpportunity.allOpportunities.slice(0, 5).map((opp: { protocol: string; pool: string; apy: number; tvl: number }, i: number) => (
+                          <div
+                            key={i}
+                            style={{
+                              padding: "0.5rem",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              borderBottom: "1px solid rgba(255,255,255,0.1)",
+                            }}
+                          >
+                            <span>
+                              {opp.protocol} - {opp.pool}
+                            </span>
+                            <span>{opp.apy.toFixed(2)}% APY</span>
+                          </div>
+                        ))}
+                        {bestOpportunity.allOpportunities.length > 5 && (
+                          <p className="empty" style={{ marginTop: "0.5rem" }}>
+                            ...and {bestOpportunity.allOpportunities.length - 5} more
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                {bestOpportunity.userConfig && (
+                  <div
+                    style={{
+                      marginTop: "1rem",
+                      fontSize: "0.85rem",
+                      opacity: 0.7,
+                    }}
+                  >
+                    <strong>User Config:</strong>
+                    <div style={{ marginTop: "0.25rem" }}>
+                      Auto-select: {bestOpportunity.userConfig.autoSelectProtocols ? "Yes" : "No"}
+                    </div>
+                    <div>
+                      Enabled Protocols: {bestOpportunity.userConfig.enabledProtocols.join(", ") || "None"}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="empty">{bestOpportunity.error || "Failed to get best opportunity"}</p>
             )}
           </div>
         )}
