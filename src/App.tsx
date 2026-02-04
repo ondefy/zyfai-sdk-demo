@@ -534,6 +534,22 @@ function App() {
     }
   };
 
+  const pauseAgent = async () => {
+    if (!ensureWallet()) return;
+    try {
+      setIsBusy(true);
+      setStatus("Pausing agent (clearing all protocols)…");
+      await sdk!.pauseAgent();
+      const response = await sdk!.getUserDetails();
+      setUserDetails(response);
+      setStatus("Agent paused successfully. All protocols cleared.");
+    } catch (error) {
+      setStatus(`Failed to pause agent: ${(error as Error).message}`);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const updateProtocols = async () => {
     if (!ensureWallet()) return;
     if (selectedProtocols.length === 0) {
@@ -1045,6 +1061,15 @@ function App() {
             Set Aggressive Strategy
           </button>
         </div>
+        <div className="control-buttons">
+          <button
+            onClick={pauseAgent}
+            disabled={isBusy || !address}
+            title="Pause agent by clearing all protocols"
+          >
+            Pause Agent
+          </button>
+        </div>
         </div>
 
         {userDetails?.user ? (
@@ -1088,6 +1113,17 @@ function App() {
               <span>Cross-chain Strategy</span>
               <strong>
                 {userDetails.user.crosschainStrategy ? "Yes" : "No"}
+              </strong>
+            </div>
+            <div className="detail-row">
+              <span>Active Protocols</span>
+              <strong>
+                {userDetails.user.protocols?.length || 0}
+                {userDetails.user.protocols?.length > 0 && (
+                  <span style={{ marginLeft: "8px", fontSize: "0.9em", opacity: 0.7 }}>
+                    ({userDetails.user.protocols.map(p => p.name).join(", ")})
+                  </span>
+                )}
               </strong>
             </div>
           </div>
