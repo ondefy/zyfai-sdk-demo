@@ -190,7 +190,7 @@ function App() {
     "7D"
   );
   const [selectedProtocols, setSelectedProtocols] = useState<string[]>([]);
-  const [minSplitsInput, setMinSplitsInput] = useState("3");
+  const [minSplitsInput, setMinSplitsInput] = useState("1");
 
   const sdk = useMemo(() => {
     const apiKey = import.meta.env.VITE_ZYFAI_API_KEY;
@@ -1117,14 +1117,14 @@ function App() {
               min="1"
               value={minSplitsInput}
               onChange={(e) => setMinSplitsInput(e.target.value)}
-              placeholder="3"
+              placeholder="1"
               disabled={isBusy || !address}
             />
           </label>
         </div>
         <div className="control-buttons">
           <button
-            onClick={() => enableSplitting(parseInt(minSplitsInput) || 3)}
+            onClick={() => enableSplitting(parseInt(minSplitsInput) || 1)}
             disabled={isBusy || !address}
             title="Enable splitting with specified min splits"
           >
