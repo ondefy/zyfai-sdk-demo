@@ -190,6 +190,7 @@ function App() {
     "7D"
   );
   const [selectedProtocols, setSelectedProtocols] = useState<string[]>([]);
+  const [minSplitsInput, setMinSplitsInput] = useState("3");
 
   const sdk = useMemo(() => {
     const apiKey = import.meta.env.VITE_ZYFAI_API_KEY;
@@ -545,6 +546,38 @@ function App() {
       setStatus("Agent paused successfully. All protocols cleared.");
     } catch (error) {
       setStatus(`Failed to pause agent: ${(error as Error).message}`);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const enableSplitting = async (minSplits: number) => {
+    if (!ensureWallet()) return;
+    try {
+      setIsBusy(true);
+      setStatus(`Enabling splitting with min splits: ${minSplits}…`);
+      await sdk!.enableSplitting(minSplits);
+      const response = await sdk!.getUserDetails();
+      setUserDetails(response);
+      setStatus(`Splitting enabled with min splits: ${minSplits}`);
+    } catch (error) {
+      setStatus(`Failed to enable splitting: ${(error as Error).message}`);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const disableSplitting = async () => {
+    if (!ensureWallet()) return;
+    try {
+      setIsBusy(true);
+      setStatus("Disabling splitting…");
+      await sdk!.disableSplitting();
+      const response = await sdk!.getUserDetails();
+      setUserDetails(response);
+      setStatus("Splitting disabled successfully.");
+    } catch (error) {
+      setStatus(`Failed to disable splitting: ${(error as Error).message}`);
     } finally {
       setIsBusy(false);
     }
@@ -1072,6 +1105,40 @@ function App() {
         </div>
         </div>
 
+        <h3>Splitting Settings</h3>
+        <p>
+          Control how deposits are split across multiple protocols for diversification.
+        </p>
+        <div className="controls">
+          <label>
+            Minimum Splits
+            <input
+              type="number"
+              min="1"
+              value={minSplitsInput}
+              onChange={(e) => setMinSplitsInput(e.target.value)}
+              placeholder="3"
+              disabled={isBusy || !address}
+            />
+          </label>
+        </div>
+        <div className="control-buttons">
+          <button
+            onClick={() => enableSplitting(parseInt(minSplitsInput) || 3)}
+            disabled={isBusy || !address}
+            title="Enable splitting with specified min splits"
+          >
+            Enable Splitting
+          </button>
+          <button
+            onClick={disableSplitting}
+            disabled={isBusy || !address}
+            title="Disable splitting"
+          >
+            Disable Splitting
+          </button>
+        </div>
+
         {userDetails?.user ? (
           <div className="detail-grid">
             <div className="detail-row">
@@ -1126,6 +1193,16 @@ function App() {
                 )}
               </strong>
             </div>
+            <div className="detail-row">
+              <span>Splitting Enabled</span>
+              <strong>{userDetails.user.splitting ? "Yes" : "No"}</strong>
+            </div>
+            {userDetails.user.splitting && (
+              <div className="detail-row">
+                <span>Min Splits</span>
+                <strong>{userDetails.user.minSplits || "Not set"}</strong>
+              </div>
+            )}
           </div>
         ) : (
           <p className="empty">Fetch user details to view profile.</p>
