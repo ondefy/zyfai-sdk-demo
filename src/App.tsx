@@ -24,6 +24,7 @@ import type {
   RebalanceFrequencyResponse,
   SdkKeyTVLResponse,
   BestOpportunityResponse,
+  RegisterAgentResponse,
 } from "@zyfai/sdk";
 import { ZyfaiSDK } from "@zyfai/sdk";
 import { useEffect, useMemo, useState } from "react";
@@ -102,7 +103,7 @@ const getExplorerUrl = (chainId: string | number, txHash: string) => {
 };
 
 function App() {
-  const { address, isConnected } = useAccount();
+  const { address, chain, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
   const { disconnect } = useDisconnect();
   const { open } = useAppKit();
@@ -135,6 +136,11 @@ function App() {
   const [withdrawResult, setWithdrawResult] = useState<WithdrawResponse | null>(
     null
   );
+
+  useEffect(() => {
+    if (!address || !isConnected || !chain) return;
+     setSelectedChain(chain.id as SupportedChainId);
+  }, [address, isConnected, chain]);
 
   // New state for additional SDK methods
   const [userDetails, setUserDetails] = useState<UserDetailsResponse | null>(
@@ -180,6 +186,8 @@ function App() {
   const [sdkKeyTvl, setSdkKeyTvl] = useState<SdkKeyTVLResponse | null>(null);
   const [bestOpportunity, setBestOpportunity] =
     useState<BestOpportunityResponse | null>(null);
+  const [identityRegistryResult, setIdentityRegistryResult] =
+    useState<RegisterAgentResponse | null>(null);
   // Read-only lookup state (no wallet connection required)
   const [lookupAddress, setLookupAddress] = useState("");
 
@@ -990,6 +998,49 @@ function App() {
     }
   };
 
+  // ============================================================================
+  // Identity Registry
+  // ============================================================================
+
+  const registerAgentOnIdentityRegistry = async () => {
+    if (!ensureWallet()) return;
+    if (!walletInfo?.address) {
+      setStatus("Please resolve smart wallet first.");
+      return;
+    }
+
+    console.log("selectedChain", selectedChain);
+    // Identity Registry only supports Base (8453) and Arbitrum (42161)
+    if (selectedChain !== 8453 && selectedChain !== 42161) {
+      setStatus(
+        "Identity Registry only supports Base (8453) and Arbitrum (42161). Please switch chain."
+      );
+      return;
+    }
+    try {
+      setIsBusy(true);
+      setStatus(
+        `Registering agent on Identity Registry (chain ${selectedChain})…`
+      );
+      const result = await sdk!.registerAgentOnIdentityRegistry(
+        walletInfo.address,
+        selectedChain
+      );
+      setIdentityRegistryResult(result);
+      setStatus(
+        result.success
+          ? `Agent registered on Identity Registry. Tx: ${truncate(result.txHash, 10)}`
+          : "Identity Registry registration reported a failure."
+      );
+    } catch (error) {
+      setStatus(
+        `Failed to register on Identity Registry: ${(error as Error).message}`
+      );
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const clearAllState = () => {
     disconnect();
     setProtocols([]);
@@ -1019,6 +1070,7 @@ function App() {
     setSdkAllowedWallets(null);
     setSdkKeyTvl(null);
     setBestOpportunity(null);
+    setIdentityRegistryResult(null);
     setSelectedProtocols([]);
     setStatus("Wallet disconnected.");
   };
@@ -2446,6 +2498,101 @@ function App() {
             ) : (
               <p className="empty">{bestOpportunity.error || "Failed to get best opportunity"}</p>
             )}
+          </div>
+        )}
+      </section>
+
+      {/* =============================== IDENTITY REGISTRY =============================== */}
+      <section className="panel">
+        <h2>Identity Registry</h2>
+        <p>
+          Register your agent on the on-chain Identity Registry. This calls the
+          smart contract to mint an identity token for your smart wallet.
+          <br />
+          <strong>Supported chains:</strong> Base (8453) and Arbitrum (42161)
+          only.
+        </p>
+        <div className="control-buttons">
+          <button
+            onClick={registerAgentOnIdentityRegistry}
+            disabled={
+              isBusy ||
+              !address ||
+              !walletInfo?.address ||
+              (selectedChain !== 8453 && selectedChain !== 42161)
+            }
+            title={
+              !walletInfo?.address
+                ? "Resolve Smart Wallet first"
+                : selectedChain !== 8453 && selectedChain !== 42161
+                ? "Switch to Base or Arbitrum"
+                : "Register agent on Identity Registry"
+            }
+          >
+            Register Agent on Identity Registry
+          </button>
+        </div>
+
+        {!walletInfo?.address && (
+          <p className="empty">
+            Resolve your Smart Wallet first, then register on the Identity
+            Registry.
+          </p>
+        )}
+
+        {walletInfo?.address &&
+          selectedChain !== 8453 &&
+          selectedChain !== 42161 && (
+            <p className="empty">
+              Please switch to Base (8453) or Arbitrum (42161) to use the
+              Identity Registry.
+            </p>
+          )}
+
+        {identityRegistryResult && (
+          <div className="callout">
+            <div>
+              <strong>Identity Registry Registration</strong>
+            </div>
+            <div className="detail-grid" style={{ marginTop: "0.5rem" }}>
+              <div className="detail-row">
+                <span>Status</span>
+                <strong
+                  style={{
+                    color: identityRegistryResult.success
+                      ? "#22c55e"
+                      : "#ef4444",
+                  }}
+                >
+                  {identityRegistryResult.success ? "Success" : "Failed"}
+                </strong>
+              </div>
+              <div className="detail-row">
+                <span>Transaction</span>
+                <a
+                  href={getExplorerUrl(
+                    identityRegistryResult.chainId,
+                    identityRegistryResult.txHash
+                  )}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {truncate(identityRegistryResult.txHash, 10)}
+                </a>
+              </div>
+              <div className="detail-row">
+                <span>Chain</span>
+                <strong>
+                  {formatChainName(identityRegistryResult.chainId)}
+                </strong>
+              </div>
+              <div className="detail-row">
+                <span>Smart Wallet</span>
+                <code>
+                  {truncate(identityRegistryResult.smartWallet, 10)}
+                </code>
+              </div>
+            </div>
           </div>
         )}
       </section>
