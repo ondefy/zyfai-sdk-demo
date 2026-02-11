@@ -50,6 +50,33 @@ type PositionBundle = Position & {
   chain?: string;
 };
 
+interface OpportunityRisk {
+  poolName: string;
+  protocolName: string;
+  chainId: number;
+  liquidityDepth: "deep" | "moderate" | "shallow";
+  utilizationRate: number;
+  tvlStability: boolean | null;
+  apyStability: boolean | null;
+  tvlApyCombinedRisk: boolean | null;
+  avgCombinedApy7d: number | null;
+  avgCombinedApy15d: number | null;
+  avgCombinedApy30d: number | null;
+  collateralSymbols: string[];
+}
+
+interface PoolStatus {
+  poolName: string;
+  protocolName: string;
+  chainId: number;
+  healthScore: "healthy" | "moderate" | "risky";
+  riskLevel: "low" | "medium" | "high";
+  apyTrend: "rising" | "stable" | "falling";
+  yieldConsistency: "consistent" | "mixed" | "volatile";
+  liquidityDepth: "deep" | "moderate" | "shallow";
+  avgCombinedApy7d: number | null;
+}
+
 const truncate = (value?: string, visible = 8) => {
   if (!value) return "";
   if (value.length <= visible * 2) return value;
@@ -188,6 +215,21 @@ function App() {
     useState<BestOpportunityResponse | null>(null);
   const [identityRegistryResult, setIdentityRegistryResult] =
     useState<RegisterAgentResponse | null>(null);
+
+  // Opportunities Risk & Pool Status state
+  const [conservativeOppsRisk, setConservativeOppsRisk] = useState<
+    OpportunityRisk[] | null
+  >(null);
+  const [aggressiveOppsRisk, setAggressiveOppsRisk] = useState<
+    OpportunityRisk[] | null
+  >(null);
+  const [conservativePoolStatus, setConservativePoolStatus] = useState<
+    PoolStatus[] | null
+  >(null);
+  const [aggressivePoolStatus, setAggressivePoolStatus] = useState<
+    PoolStatus[] | null
+  >(null);
+
   // Read-only lookup state (no wallet connection required)
   const [lookupAddress, setLookupAddress] = useState("");
 
@@ -1041,6 +1083,78 @@ function App() {
     }
   };
 
+  // ============================================================================
+  // Opportunities Risk & Pool Status
+  // ============================================================================
+
+  const fetchConservativeOppsRisk = async () => {
+    if (!ensureSdk()) return;
+    try {
+      setIsBusy(true);
+      setStatus("Fetching conservative opportunities with risk data…");
+      const data = await sdk!.getActiveConservativeOppsRisk(selectedChain);
+      setConservativeOppsRisk(data);
+      setStatus(`Loaded ${data.length} conservative opportunities with risk.`);
+    } catch (error) {
+      setStatus(
+        `Failed to get conservative opps risk: ${(error as Error).message}`
+      );
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const fetchAggressiveOppsRisk = async () => {
+    if (!ensureSdk()) return;
+    try {
+      setIsBusy(true);
+      setStatus("Fetching aggressive opportunities with risk data…");
+      const data = await sdk!.getActiveAggressiveOppsRisk(selectedChain);
+      setAggressiveOppsRisk(data);
+      setStatus(`Loaded ${data.length} aggressive opportunities with risk.`);
+    } catch (error) {
+      setStatus(
+        `Failed to get aggressive opps risk: ${(error as Error).message}`
+      );
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const fetchConservativePoolStatus = async () => {
+    if (!ensureSdk()) return;
+    try {
+      setIsBusy(true);
+      setStatus("Fetching conservative pool status…");
+      const data = await sdk!.getConservativePoolStatus(selectedChain);
+      setConservativePoolStatus(data);
+      setStatus(`Loaded ${data.length} conservative pool statuses.`);
+    } catch (error) {
+      setStatus(
+        `Failed to get conservative pool status: ${(error as Error).message}`
+      );
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const fetchAggressivePoolStatus = async () => {
+    if (!ensureSdk()) return;
+    try {
+      setIsBusy(true);
+      setStatus("Fetching aggressive pool status…");
+      const data = await sdk!.getAggressivePoolStatus(selectedChain);
+      setAggressivePoolStatus(data);
+      setStatus(`Loaded ${data.length} aggressive pool statuses.`);
+    } catch (error) {
+      setStatus(
+        `Failed to get aggressive pool status: ${(error as Error).message}`
+      );
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const clearAllState = () => {
     disconnect();
     setProtocols([]);
@@ -1071,6 +1185,10 @@ function App() {
     setSdkKeyTvl(null);
     setBestOpportunity(null);
     setIdentityRegistryResult(null);
+    setConservativeOppsRisk(null);
+    setAggressiveOppsRisk(null);
+    setConservativePoolStatus(null);
+    setAggressivePoolStatus(null);
     setSelectedProtocols([]);
     setStatus("Wallet disconnected.");
   };
@@ -2093,6 +2211,395 @@ function App() {
                 </article>
               );
             })}
+          </div>
+        )}
+      </section>
+
+      {/* =============================== OPPORTUNITIES RISK & POOL STATUS =============================== */}
+      <section className="panel">
+        <h2>Opportunities Risk & Pool Status</h2>
+        <p>
+          Analyze live yield opportunities with risk metrics (liquidity depth,
+          utilization, stability) and derived pool health scores.
+        </p>
+
+        <h3>Opportunities with Risk Data</h3>
+        <div className="control-buttons">
+          <button onClick={fetchConservativeOppsRisk} disabled={isBusy}>
+            Conservative Opps Risk
+          </button>
+          <button onClick={fetchAggressiveOppsRisk} disabled={isBusy}>
+            Aggressive Opps Risk
+          </button>
+        </div>
+
+        <h3 style={{ marginTop: "1.5rem" }}>Pool Status (Derived Health)</h3>
+        <div className="control-buttons">
+          <button onClick={fetchConservativePoolStatus} disabled={isBusy}>
+            Conservative Pool Status
+          </button>
+          <button onClick={fetchAggressivePoolStatus} disabled={isBusy}>
+            Aggressive Pool Status
+          </button>
+        </div>
+
+        {/* ---------- Conservative Opps Risk ---------- */}
+        {conservativeOppsRisk && conservativeOppsRisk.length > 0 && (
+          <div className="list" style={{ marginTop: "1.5rem" }}>
+            <strong>
+              Conservative Opportunities Risk ({conservativeOppsRisk.length})
+            </strong>
+            {conservativeOppsRisk.slice(0, 8).map((opp, i) => (
+              <article key={`cons-risk-${i}`}>
+                <header>
+                  <div>
+                    <strong>{opp.protocolName}</strong>
+                    <span> | {opp.poolName}</span>
+                  </div>
+                  <small>
+                    7d APY:{" "}
+                    {opp.avgCombinedApy7d != null
+                      ? `${opp.avgCombinedApy7d.toFixed(2)}%`
+                      : "n/a"}
+                  </small>
+                </header>
+                <div className="detail-grid">
+                  <div className="detail-row">
+                    <span>Chain</span>
+                    <strong>{formatChainName(opp.chainId)}</strong>
+                  </div>
+                  <div className="detail-row">
+                    <span>Liquidity Depth</span>
+                    <strong
+                      style={{
+                        color:
+                          opp.liquidityDepth === "deep"
+                            ? "#22c55e"
+                            : opp.liquidityDepth === "moderate"
+                            ? "#f59e0b"
+                            : "#ef4444",
+                      }}
+                    >
+                      {opp.liquidityDepth}
+                    </strong>
+                  </div>
+                  <div className="detail-row">
+                    <span>Utilization</span>
+                    <strong>{opp.utilizationRate.toFixed(2)}%</strong>
+                  </div>
+                  <div className="detail-row">
+                    <span>TVL Stable</span>
+                    <strong>
+                      {opp.tvlStability === null
+                        ? "n/a"
+                        : opp.tvlStability
+                        ? "Yes"
+                        : "No"}
+                    </strong>
+                  </div>
+                  <div className="detail-row">
+                    <span>APY Stable (30d)</span>
+                    <strong>
+                      {opp.apyStability === null
+                        ? "n/a"
+                        : opp.apyStability
+                        ? "Yes"
+                        : "No"}
+                    </strong>
+                  </div>
+                  <div className="detail-row">
+                    <span>15d APY</span>
+                    <strong>
+                      {opp.avgCombinedApy15d != null
+                        ? `${opp.avgCombinedApy15d.toFixed(2)}%`
+                        : "n/a"}
+                    </strong>
+                  </div>
+                  <div className="detail-row">
+                    <span>30d APY</span>
+                    <strong>
+                      {opp.avgCombinedApy30d != null
+                        ? `${opp.avgCombinedApy30d.toFixed(2)}%`
+                        : "n/a"}
+                    </strong>
+                  </div>
+                  {opp.collateralSymbols.length > 0 && (
+                    <div className="detail-row">
+                      <span>Collateral</span>
+                      <strong>{opp.collateralSymbols.join(", ")}</strong>
+                    </div>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+
+        {/* ---------- Aggressive Opps Risk ---------- */}
+        {aggressiveOppsRisk && aggressiveOppsRisk.length > 0 && (
+          <div className="list" style={{ marginTop: "1.5rem" }}>
+            <strong>
+              Aggressive Opportunities Risk ({aggressiveOppsRisk.length})
+            </strong>
+            {aggressiveOppsRisk.slice(0, 8).map((opp, i) => (
+              <article key={`agg-risk-${i}`}>
+                <header>
+                  <div>
+                    <strong>{opp.protocolName}</strong>
+                    <span> | {opp.poolName}</span>
+                  </div>
+                  <small>
+                    7d APY:{" "}
+                    {opp.avgCombinedApy7d != null
+                      ? `${opp.avgCombinedApy7d.toFixed(2)}%`
+                      : "n/a"}
+                  </small>
+                </header>
+                <div className="detail-grid">
+                  <div className="detail-row">
+                    <span>Chain</span>
+                    <strong>{formatChainName(opp.chainId)}</strong>
+                  </div>
+                  <div className="detail-row">
+                    <span>Liquidity Depth</span>
+                    <strong
+                      style={{
+                        color:
+                          opp.liquidityDepth === "deep"
+                            ? "#22c55e"
+                            : opp.liquidityDepth === "moderate"
+                            ? "#f59e0b"
+                            : "#ef4444",
+                      }}
+                    >
+                      {opp.liquidityDepth}
+                    </strong>
+                  </div>
+                  <div className="detail-row">
+                    <span>Utilization</span>
+                    <strong>{opp.utilizationRate.toFixed(2)}%</strong>
+                  </div>
+                  <div className="detail-row">
+                    <span>TVL Stable</span>
+                    <strong>
+                      {opp.tvlStability === null
+                        ? "n/a"
+                        : opp.tvlStability
+                        ? "Yes"
+                        : "No"}
+                    </strong>
+                  </div>
+                  <div className="detail-row">
+                    <span>APY Stable (30d)</span>
+                    <strong>
+                      {opp.apyStability === null
+                        ? "n/a"
+                        : opp.apyStability
+                        ? "Yes"
+                        : "No"}
+                    </strong>
+                  </div>
+                  <div className="detail-row">
+                    <span>15d APY</span>
+                    <strong>
+                      {opp.avgCombinedApy15d != null
+                        ? `${opp.avgCombinedApy15d.toFixed(2)}%`
+                        : "n/a"}
+                    </strong>
+                  </div>
+                  <div className="detail-row">
+                    <span>30d APY</span>
+                    <strong>
+                      {opp.avgCombinedApy30d != null
+                        ? `${opp.avgCombinedApy30d.toFixed(2)}%`
+                        : "n/a"}
+                    </strong>
+                  </div>
+                  {opp.collateralSymbols.length > 0 && (
+                    <div className="detail-row">
+                      <span>Collateral</span>
+                      <strong>{opp.collateralSymbols.join(", ")}</strong>
+                    </div>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+
+        {/* ---------- Conservative Pool Status ---------- */}
+        {conservativePoolStatus && conservativePoolStatus.length > 0 && (
+          <div className="list" style={{ marginTop: "1.5rem" }}>
+            <strong>
+              Conservative Pool Status ({conservativePoolStatus.length})
+            </strong>
+            {conservativePoolStatus.slice(0, 8).map((pool, i) => (
+              <article key={`cons-status-${i}`}>
+                <header>
+                  <div>
+                    <strong>{pool.protocolName}</strong>
+                    <span> | {pool.poolName}</span>
+                  </div>
+                  <small>
+                    7d APY:{" "}
+                    {pool.avgCombinedApy7d != null
+                      ? `${pool.avgCombinedApy7d.toFixed(2)}%`
+                      : "n/a"}
+                  </small>
+                </header>
+                <div className="detail-grid">
+                  <div className="detail-row">
+                    <span>Chain</span>
+                    <strong>{formatChainName(pool.chainId)}</strong>
+                  </div>
+                  <div className="detail-row">
+                    <span>Health</span>
+                    <strong
+                      style={{
+                        color:
+                          pool.healthScore === "healthy"
+                            ? "#22c55e"
+                            : pool.healthScore === "moderate"
+                            ? "#f59e0b"
+                            : "#ef4444",
+                      }}
+                    >
+                      {pool.healthScore}
+                    </strong>
+                  </div>
+                  <div className="detail-row">
+                    <span>Risk Level</span>
+                    <strong
+                      style={{
+                        color:
+                          pool.riskLevel === "low"
+                            ? "#22c55e"
+                            : pool.riskLevel === "medium"
+                            ? "#f59e0b"
+                            : "#ef4444",
+                      }}
+                    >
+                      {pool.riskLevel}
+                    </strong>
+                  </div>
+                  <div className="detail-row">
+                    <span>APY Trend</span>
+                    <strong
+                      style={{
+                        color:
+                          pool.apyTrend === "rising"
+                            ? "#22c55e"
+                            : pool.apyTrend === "falling"
+                            ? "#ef4444"
+                            : "#94a3b8",
+                      }}
+                    >
+                      {pool.apyTrend === "rising"
+                        ? "↑ Rising"
+                        : pool.apyTrend === "falling"
+                        ? "↓ Falling"
+                        : "→ Stable"}
+                    </strong>
+                  </div>
+                  <div className="detail-row">
+                    <span>Yield Consistency</span>
+                    <strong>{pool.yieldConsistency}</strong>
+                  </div>
+                  <div className="detail-row">
+                    <span>Liquidity</span>
+                    <strong>{pool.liquidityDepth}</strong>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+
+        {/* ---------- Aggressive Pool Status ---------- */}
+        {aggressivePoolStatus && aggressivePoolStatus.length > 0 && (
+          <div className="list" style={{ marginTop: "1.5rem" }}>
+            <strong>
+              Aggressive Pool Status ({aggressivePoolStatus.length})
+            </strong>
+            {aggressivePoolStatus.slice(0, 8).map((pool, i) => (
+              <article key={`agg-status-${i}`}>
+                <header>
+                  <div>
+                    <strong>{pool.protocolName}</strong>
+                    <span> | {pool.poolName}</span>
+                  </div>
+                  <small>
+                    7d APY:{" "}
+                    {pool.avgCombinedApy7d != null
+                      ? `${pool.avgCombinedApy7d.toFixed(2)}%`
+                      : "n/a"}
+                  </small>
+                </header>
+                <div className="detail-grid">
+                  <div className="detail-row">
+                    <span>Chain</span>
+                    <strong>{formatChainName(pool.chainId)}</strong>
+                  </div>
+                  <div className="detail-row">
+                    <span>Health</span>
+                    <strong
+                      style={{
+                        color:
+                          pool.healthScore === "healthy"
+                            ? "#22c55e"
+                            : pool.healthScore === "moderate"
+                            ? "#f59e0b"
+                            : "#ef4444",
+                      }}
+                    >
+                      {pool.healthScore}
+                    </strong>
+                  </div>
+                  <div className="detail-row">
+                    <span>Risk Level</span>
+                    <strong
+                      style={{
+                        color:
+                          pool.riskLevel === "low"
+                            ? "#22c55e"
+                            : pool.riskLevel === "medium"
+                            ? "#f59e0b"
+                            : "#ef4444",
+                      }}
+                    >
+                      {pool.riskLevel}
+                    </strong>
+                  </div>
+                  <div className="detail-row">
+                    <span>APY Trend</span>
+                    <strong
+                      style={{
+                        color:
+                          pool.apyTrend === "rising"
+                            ? "#22c55e"
+                            : pool.apyTrend === "falling"
+                            ? "#ef4444"
+                            : "#94a3b8",
+                      }}
+                    >
+                      {pool.apyTrend === "rising"
+                        ? "↑ Rising"
+                        : pool.apyTrend === "falling"
+                        ? "↓ Falling"
+                        : "→ Stable"}
+                    </strong>
+                  </div>
+                  <div className="detail-row">
+                    <span>Yield Consistency</span>
+                    <strong>{pool.yieldConsistency}</strong>
+                  </div>
+                  <div className="detail-row">
+                    <span>Liquidity</span>
+                    <strong>{pool.liquidityDepth}</strong>
+                  </div>
+                </div>
+              </article>
+            ))}
           </div>
         )}
       </section>
