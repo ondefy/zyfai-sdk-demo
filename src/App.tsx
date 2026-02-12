@@ -793,6 +793,28 @@ function App() {
     }
   };
 
+  const claimRewards = async () => {
+    if (!ensureWallet()) return;
+    if (!walletInfo?.address) {
+      setStatus("Please resolve smart wallet first.");
+      return;
+    }
+    try {
+      setIsBusy(true);
+      setStatus("Claiming rewards from all supported protocols…");
+      const response = await sdk!.claimRewards(walletInfo.address);
+      setStatus(
+        response.success
+          ? `✓ Rewards claimed successfully for ${truncate(response.walletAddress, 10)}`
+          : `✗ Failed to claim rewards`
+      );
+    } catch (error) {
+      setStatus(`Failed to claim rewards: ${(error as Error).message}`);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const fetchDebankPortfolio = async () => {
     if (!ensureWallet()) return;
     if (!walletInfo?.address) {
@@ -1245,6 +1267,20 @@ function App() {
                 )}
               </strong>
             </div>
+            {userDetails.user.walletType && (
+              <div className="detail-row">
+                <span>Wallet Type</span>
+                <strong>{userDetails.user.walletType}</strong>
+              </div>
+            )}
+            <div className="detail-row">
+              <span>Auto-compounding</span>
+              <strong>{userDetails.user.autocompounding ? "Yes" : "No"}</strong>
+            </div>
+            <div className="detail-row">
+              <span>Executor Proxy</span>
+              <strong>{userDetails.user.executorProxy ? "Yes" : "No"}</strong>
+            </div>
             <div className="detail-row">
               <span>Splitting Enabled</span>
               <strong>{userDetails.user.splitting ? "Yes" : "No"}</strong>
@@ -1253,6 +1289,12 @@ function App() {
               <div className="detail-row">
                 <span>Min Splits</span>
                 <strong>{userDetails.user.minSplits || "Not set"}</strong>
+              </div>
+            )}
+            {userDetails.user.registered !== undefined && (
+              <div className="detail-row">
+                <span>Registered</span>
+                <strong>{userDetails.user.registered ? "Yes" : "No"}</strong>
               </div>
             )}
           </div>
@@ -1756,6 +1798,13 @@ function App() {
             disabled={isBusy || !walletInfo?.address}
           >
             Calculate/Refresh Earnings
+          </button>
+          <button
+            onClick={claimRewards}
+            disabled={isBusy || !walletInfo?.address}
+            title="Manually claim rewards from all supported protocols"
+          >
+            Claim Rewards
           </button>
         </div>
 
