@@ -25,6 +25,8 @@ import type {
   SdkKeyTVLResponse,
   BestOpportunityResponse,
   RegisterAgentResponse,
+  CustomizationConfig,
+  GetSelectedPoolsResponse,
 } from "@zyfai/sdk";
 import { ZyfaiSDK } from "@zyfai/sdk";
 import { useEffect, useMemo, useState } from "react";
@@ -216,6 +218,25 @@ function App() {
   const [identityRegistryResult, setIdentityRegistryResult] =
     useState<RegisterAgentResponse | null>(null);
 
+  // Profile configuration state
+  const [selectedProtocolIds, setSelectedProtocolIds] = useState<string[]>([]);
+  const [autoSelectProtocols, setAutoSelectProtocols] = useState(true);
+  const [splittingEnabled, setSplittingEnabled] = useState(false);
+  const [minSplitsValue, setMinSplitsValue] = useState(2);
+  const [crossChainEnabled, setCrossChainEnabled] = useState(false);
+  const [omniAccountEnabled, setOmniAccountEnabled] = useState(false);
+  const [autocompoundingEnabled, setAutocompoundingEnabled] = useState(true);
+  const [agentNameInput, setAgentNameInput] = useState("");
+
+  // Customization state
+  const [selectedCustomProtocol, setSelectedCustomProtocol] = useState<string>("");
+  const [availablePools, setAvailablePools] = useState<string[]>([]);
+  const [selectedPools, setSelectedPools] = useState<string[]>([]);
+  const [customizationAutoselect, setCustomizationAutoselect] = useState(false);
+  const [customizationChainId, setCustomizationChainId] = useState<number>(8453);
+  const [currentCustomization, setCurrentCustomization] = useState<GetSelectedPoolsResponse | null>(null);
+  const [customizationConfigs, setCustomizationConfigs] = useState<CustomizationConfig[]>([]);
+
   // Opportunities Risk & Pool Status state
   const [conservativeOppsRisk, setConservativeOppsRisk] = useState<
     OpportunityRisk[] | null
@@ -278,6 +299,29 @@ function App() {
       active = false;
     };
   }, [sdk, walletClient, address]);
+
+  // Sync profile configuration state with userDetails
+  useEffect(() => {
+    if (!userDetails) return;
+    
+    const user = userDetails.user;
+    setSplittingEnabled(user.splitting ?? false);
+    setMinSplitsValue(user.minSplits ?? 2);
+    setCrossChainEnabled(user.crosschainStrategy ?? false);
+    setOmniAccountEnabled(user.omniAccount ?? false);
+    setAutocompoundingEnabled(user.autocompounding ?? true);
+    setAutoSelectProtocols(user.autoSelectProtocols ?? true);
+    
+    // Sync agent name if available
+    if (user.agentName) {
+      setAgentNameInput(user.agentName);
+    }
+    
+    // Sync selected protocol IDs
+    if (user.protocols && user.protocols.length > 0) {
+      setSelectedProtocolIds(user.protocols.map(p => p.id));
+    }
+  }, [userDetails]);
 
   const ensureSdk = () => {
     if (!sdk) {
@@ -539,31 +583,6 @@ function App() {
     }
   };
 
-  const updateUserProfile = async () => {
-    if (!ensureWallet()) return;
-    if (!walletInfo?.address) {
-      setStatus("Please resolve smart wallet first to get the Safe address.");
-      return;
-    }
-    try {
-      setIsBusy(true);
-      setStatus("Updating user profile with smart wallet…");
-      await sdk!.updateUserProfile({
-        smartWallet: walletInfo.address,
-        chains: [selectedChain],
-      });
-      setStatus(
-        `Profile updated with Smart Wallet: ${truncate(walletInfo.address, 10)}`
-      );
-      // Refresh user details to show updated info
-      const response = await sdk!.getUserDetails();
-      setUserDetails(response);
-    } catch (error) {
-      setStatus(`Failed to update profile: ${(error as Error).message}`);
-    } finally {
-      setIsBusy(false);
-    }
-  };
 
   const updateUserStrategy = async (
     nextStrategy: "conservative" | "aggressive"
@@ -653,6 +672,150 @@ function App() {
       setUserDetails(response);
     } catch (error) {
       setStatus(`Failed to update protocols: ${(error as Error).message}`);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const updateProfileWithAdvancedFeatures = async () => {
+    if (!ensureWallet()) return;
+    try {
+      setIsBusy(true);
+      setStatus("Updating profile with advanced features…");
+
+      const updatePayload: any = {
+        autoSelectProtocols,
+        splitting: splittingEnabled,
+        crosschainStrategy: crossChainEnabled,
+        omniAccount: omniAccountEnabled,
+        autocompounding: autocompoundingEnabled,
+      };
+
+      if (splittingEnabled) {
+        updatePayload.minSplits = minSplitsValue;
+      }
+
+      if (selectedProtocolIds.length > 0) {
+        updatePayload.protocols = selectedProtocolIds;
+      }
+
+      if (agentNameInput.trim()) {
+        updatePayload.agentName = agentNameInput.trim();
+      }
+
+      const response = await sdk!.updateUserProfile(updatePayload);
+
+      setStatus(
+        `✓ Profile updated with advanced features!`
+      );
+
+      // Refresh user details
+      const userDetailsResponse = await sdk!.getUserDetails();
+      setUserDetails(userDetailsResponse);
+
+      console.log("Profile update response:", response);
+    } catch (error) {
+      setStatus(`Failed to update profile: ${(error as Error).message}`);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  // ============================================================================
+  // Customization Handlers
+  // ============================================================================
+
+  const fetchAvailablePools = async () => {
+    if (!ensureSdk()) return;
+    if (!selectedCustomProtocol) {
+      setStatus("Please select a protocol first");
+      return;
+    }
+    try {
+      setIsBusy(true);
+      setStatus("Fetching available pools…");
+      const response = await sdk!.getAvailablePools(selectedCustomProtocol);
+      setAvailablePools(response.pools);
+      setStatus(`Loaded ${response.pools.length} available pools`);
+    } catch (error) {
+      setStatus(`Failed to get pools: ${(error as Error).message}`);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const fetchSelectedPools = async () => {
+    if (!ensureWallet()) return;
+    if (!selectedCustomProtocol) {
+      setStatus("Please select a protocol first");
+      return;
+    }
+    try {
+      setIsBusy(true);
+      setStatus("Fetching selected pools…");
+      const response = await sdk!.getSelectedPools(
+        selectedCustomProtocol,
+        customizationChainId
+      );
+      setCurrentCustomization(response);
+      setSelectedPools(response.pools);
+      setCustomizationAutoselect(response.autoselect);
+      setStatus(
+        `Current config: ${response.autoselect ? "Autoselect enabled" : `${response.pools.length} pools selected`}`
+      );
+    } catch (error) {
+      setStatus(`No customization found or error: ${(error as Error).message}`);
+      setCurrentCustomization(null);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const addToCustomizationBatch = () => {
+    if (!selectedCustomProtocol) {
+      setStatus("Please select a protocol");
+      return;
+    }
+
+    const config: CustomizationConfig = {
+      protocolId: selectedCustomProtocol,
+      pools: customizationAutoselect ? [] : selectedPools,
+      chainId: customizationChainId,
+      autoselect: customizationAutoselect,
+    };
+
+    setCustomizationConfigs([...customizationConfigs, config]);
+    setStatus(`Added customization to batch (${customizationConfigs.length + 1} total)`);
+  };
+
+  const removeFromCustomizationBatch = (index: number) => {
+    const newConfigs = customizationConfigs.filter((_, i) => i !== index);
+    setCustomizationConfigs(newConfigs);
+    setStatus(`Removed customization from batch (${newConfigs.length} remaining)`);
+  };
+
+  const clearCustomizationBatch = () => {
+    setCustomizationConfigs([]);
+    setStatus("Cleared customization batch");
+  };
+
+  const applyCustomizationBatch = async () => {
+    if (!ensureWallet()) return;
+    if (customizationConfigs.length === 0) {
+      setStatus("No customizations in batch");
+      return;
+    }
+    try {
+      setIsBusy(true);
+      setStatus(`Applying ${customizationConfigs.length} customizations…`);
+      await sdk!.customizeBatch(customizationConfigs);
+      setStatus(`✓ Successfully applied ${customizationConfigs.length} customizations`);
+      setCustomizationConfigs([]);
+      // Refresh user details to see updated customization
+      const userDetailsResponse = await sdk!.getUserDetails();
+      setUserDetails(userDetailsResponse);
+    } catch (error) {
+      setStatus(`Failed to apply customizations: ${(error as Error).message}`);
     } finally {
       setIsBusy(false);
     }
@@ -1239,17 +1402,6 @@ function App() {
           <button onClick={fetchUserDetails} disabled={isBusy || !address}>
             Get User Details
           </button>
-          <button
-            onClick={updateUserProfile}
-            disabled={isBusy || !address || !walletInfo?.address}
-            title={
-              !walletInfo?.address
-                ? "Resolve Smart Wallet first"
-                : "Update profile with Smart Wallet address"
-            }
-          >
-            Update Profile
-          </button>
         <div className="control-buttons">
           <button
             onClick={() => updateUserStrategy("conservative")}
@@ -1376,6 +1528,228 @@ function App() {
           </div>
         ) : (
           <p className="empty">Fetch user details to view profile.</p>
+        )}
+      </section>
+
+      {/* =========================== ADVANCED PROFILE CONFIGURATION =========================== */}
+      <section className="panel">
+        <h2>Advanced Profile Configuration</h2>
+        <p>
+          Configure your user profile with protocols, chains, and advanced
+          features like splitting, cross-chain strategies, and more.
+        </p>
+
+        {/* Protocols Selection */}
+        <div style={{ marginBottom: "1rem" }}>
+          <h3 style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>
+            Protocol Selection
+          </h3>
+          <div style={{ marginBottom: "0.5rem" }}>
+            <label style={{ display: "flex", alignItems: "center" }}>
+              <input
+                type="checkbox"
+                checked={autoSelectProtocols}
+                onChange={(e) => setAutoSelectProtocols(e.target.checked)}
+                style={{ marginRight: "0.5rem" }}
+              />
+              Auto-select protocols (recommended)
+            </label>
+          </div>
+          {!autoSelectProtocols && (
+            <div style={{ marginTop: "0.5rem" }}>
+              <p style={{ fontSize: "0.9rem", opacity: 0.7 }}>
+                Select protocols to use (fetched from getProtocols):
+              </p>
+              <div style={{ maxHeight: "150px", overflowY: "auto", border: "1px solid #333", padding: "0.5rem", marginTop: "0.5rem" }}>
+                {protocols.length > 0 ? (
+                  protocols.map((protocol) => (
+                    <label
+                      key={protocol.id}
+                      style={{ display: "block", marginBottom: "0.25rem" }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedProtocolIds.includes(protocol.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedProtocolIds([...selectedProtocolIds, protocol.id]);
+                          } else {
+                            setSelectedProtocolIds(
+                              selectedProtocolIds.filter((id) => id !== protocol.id)
+                            );
+                          }
+                        }}
+                        style={{ marginRight: "0.5rem" }}
+                      />
+                      {protocol.name} ({protocol.type})
+                    </label>
+                  ))
+                ) : (
+                  <p className="empty">
+                    Fetch protocols first using the Protocols section
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Advanced Features */}
+        <div style={{ marginBottom: "1rem" }}>
+          <h3 style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>
+            Advanced Features
+          </h3>
+
+          <label style={{ display: "flex", alignItems: "center", marginBottom: "0.5rem" }}>
+            <input
+              type="checkbox"
+              checked={splittingEnabled}
+              onChange={(e) => setSplittingEnabled(e.target.checked)}
+              style={{ marginRight: "0.5rem" }}
+            />
+            Enable Position Splitting
+          </label>
+
+          {splittingEnabled && (
+            <div style={{ marginLeft: "1.5rem", marginBottom: "0.5rem" }}>
+              <label style={{ display: "block", marginBottom: "0.25rem" }}>
+                Min Splits (1-4):
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="4"
+                value={minSplitsValue}
+                onChange={(e) => setMinSplitsValue(parseInt(e.target.value) || 2)}
+                style={{ width: "80px", padding: "0.25rem" }}
+              />
+            </div>
+          )}
+
+          <label style={{ display: "flex", alignItems: "center", marginBottom: "0.5rem" }}>
+            <input
+              type="checkbox"
+              checked={crossChainEnabled}
+              onChange={(e) => setCrossChainEnabled(e.target.checked)}
+              style={{ marginRight: "0.5rem" }}
+            />
+            Enable Cross-Chain Strategy
+          </label>
+
+          <label style={{ display: "flex", alignItems: "center", marginBottom: "0.5rem" }}>
+            <input
+              type="checkbox"
+              checked={omniAccountEnabled}
+              onChange={(e) => setOmniAccountEnabled(e.target.checked)}
+              style={{ marginRight: "0.5rem" }}
+            />
+            Enable Omni-Account
+          </label>
+
+          <label style={{ display: "flex", alignItems: "center", marginBottom: "0.5rem" }}>
+            <input
+              type="checkbox"
+              checked={autocompoundingEnabled}
+              onChange={(e) => setAutocompoundingEnabled(e.target.checked)}
+              style={{ marginRight: "0.5rem" }}
+            />
+            Enable Auto-compounding
+          </label>
+        </div>
+
+        {/* Agent Name */}
+        <div style={{ marginBottom: "1rem" }}>
+          <label
+            htmlFor="agentName"
+            style={{ display: "block", marginBottom: "0.5rem" }}
+          >
+            Agent Name (optional):
+          </label>
+          <input
+            id="agentName"
+            type="text"
+            placeholder="My DeFi Agent"
+            value={agentNameInput}
+            onChange={(e) => setAgentNameInput(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "0.5rem",
+              fontSize: "0.9rem",
+            }}
+          />
+        </div>
+
+        <div className="control-buttons">
+          <button
+            onClick={updateProfileWithAdvancedFeatures}
+            disabled={isBusy || !address}
+            title={
+              !address
+                ? "Connect wallet first"
+                : "Update profile with all configured features"
+            }
+          >
+            Update Profile with Advanced Features
+          </button>
+        </div>
+
+        {!address && (
+          <p className="empty">
+            Connect your wallet to configure advanced profile features.
+          </p>
+        )}
+
+        {/* Current Configuration Display */}
+        {userDetails && (
+          <div style={{ marginTop: "1rem" }}>
+            <h3 style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>
+              Current Configuration
+            </h3>
+            <div className="callout">
+              <div className="detail-grid">
+                <div className="detail-row">
+                  <span>Auto-select Protocols</span>
+                  <strong>
+                    {userDetails.user.autoSelectProtocols ? "Yes" : "No"}
+                  </strong>
+                </div>
+                <div className="detail-row">
+                  <span>Protocols Configured</span>
+                  <strong>{userDetails.user.protocols.length}</strong>
+                </div>
+                <div className="detail-row">
+                  <span>Splitting</span>
+                  <strong>
+                    {userDetails.user.splitting ? `Yes (Min: ${userDetails.user.minSplits || "N/A"})` : "No"}
+                  </strong>
+                </div>
+                <div className="detail-row">
+                  <span>Cross-Chain</span>
+                  <strong>
+                    {userDetails.user.crosschainStrategy ? "Yes" : "No"}
+                  </strong>
+                </div>
+                <div className="detail-row">
+                  <span>Omni-Account</span>
+                  <strong>
+                    {userDetails.user.omniAccount ? "Yes" : "No"}
+                  </strong>
+                </div>
+                <div className="detail-row">
+                  <span>Auto-compounding</span>
+                  <strong>
+                    {userDetails.user.autocompounding !== false ? "Yes" : "No"}
+                  </strong>
+                </div>
+                {userDetails.user.agentName && (
+                  <div className="detail-row">
+                    <span>Agent Name</span>
+                    <strong>{userDetails.user.agentName}</strong>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         )}
       </section>
 
@@ -1508,38 +1882,298 @@ function App() {
         )}
       </section>
 
-      {/* =============================== PROTOCOLS =============================== */}
+      {/* =========================== PROTOCOL/POOL CUSTOMIZATION =========================== */}
       <section className="panel">
-        <h2>Protocols</h2>
-        {protocols.length === 0 ? (
-          <p className="empty">No protocol data loaded yet.</p>
-        ) : (
-          <div className="list">
-            {protocols.map((protocol) => {
-              const poolCount = protocol.pools?.length ?? 0;
-              const supportedChains = filterSupportedChains(protocol.chains);
-              return (
-                <article key={protocol.id}>
-                  <header>
-                    <div>
-                      <strong>{protocol.name}</strong>
-                      <span> | {protocol.type}</span>
-                    </div>
-                    <small>
-                      Chains: {supportedChains.map(formatChainName).join(", ")}
-                      {poolCount > 0 && <span> | Pools: {poolCount}</span>}
-                    </small>
-                  </header>
-                  <p>{protocol.description ?? "No description provided."}</p>
-                  {protocol.website && (
-                    <a href={protocol.website} target="_blank" rel="noreferrer">
-                      {protocol.website}
-                    </a>
-                  )}
-                </article>
-              );
-            })}
+        <h2>Protocol/Pool Customization (Batch)</h2>
+        <p>
+          Configure specific pools for each protocol on each chain. This provides
+          granular control over which pools the rebalance engine uses.
+        </p>
+
+        {/* Protocol Selection */}
+        <div style={{ marginBottom: "1rem" }}>
+          <label
+            htmlFor="customProtocol"
+            style={{ display: "block", marginBottom: "0.5rem" }}
+          >
+            Select Protocol:
+          </label>
+          <select
+            id="customProtocol"
+            value={selectedCustomProtocol}
+            onChange={(e) => {
+              setSelectedCustomProtocol(e.target.value);
+              setAvailablePools([]);
+              setSelectedPools([]);
+              setCurrentCustomization(null);
+            }}
+            style={{
+              width: "100%",
+              padding: "0.5rem",
+              fontSize: "0.9rem",
+            }}
+          >
+            <option value="">-- Select a Protocol --</option>
+            {protocols.map((protocol) => (
+              <option key={protocol.id} value={protocol.id}>
+                {protocol.name} ({protocol.type})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Chain Selection */}
+        <div style={{ marginBottom: "1rem" }}>
+          <label
+            htmlFor="customChain"
+            style={{ display: "block", marginBottom: "0.5rem" }}
+          >
+            Chain:
+          </label>
+          <select
+            id="customChain"
+            value={customizationChainId}
+            onChange={(e) => setCustomizationChainId(Number(e.target.value))}
+            style={{
+              width: "100%",
+              padding: "0.5rem",
+              fontSize: "0.9rem",
+            }}
+          >
+            <option value={8453}>Base (8453)</option>
+            <option value={42161}>Arbitrum (42161)</option>
+            <option value={9745}>Plasma (9745)</option>
+          </select>
+        </div>
+
+        {/* Autoselect Toggle */}
+        <div style={{ marginBottom: "1rem" }}>
+          <label style={{ display: "flex", alignItems: "center" }}>
+            <input
+              type="checkbox"
+              checked={customizationAutoselect}
+              onChange={(e) => {
+                setCustomizationAutoselect(e.target.checked);
+                if (e.target.checked) {
+                  setSelectedPools([]);
+                }
+              }}
+              style={{ marginRight: "0.5rem" }}
+            />
+            Autoselect (let engine choose best pools)
+          </label>
+        </div>
+
+        <div className="control-buttons" style={{ marginBottom: "1rem" }}>
+          <button
+            onClick={fetchAvailablePools}
+            disabled={isBusy || !selectedCustomProtocol}
+            title={
+              !selectedCustomProtocol
+                ? "Select a protocol first"
+                : "Get available pools for this protocol"
+            }
+          >
+            Get Available Pools
+          </button>
+          <button
+            onClick={fetchSelectedPools}
+            disabled={isBusy || !address || !selectedCustomProtocol}
+            title={
+              !address
+                ? "Connect wallet first"
+                : !selectedCustomProtocol
+                ? "Select a protocol first"
+                : "Get current pool configuration"
+            }
+          >
+            Get Current Config
+          </button>
+        </div>
+
+        {/* Available Pools Selection */}
+        {!customizationAutoselect && availablePools.length > 0 && (
+          <div style={{ marginBottom: "1rem" }}>
+            <h3 style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>
+              Available Pools (select to use):
+            </h3>
+            <div
+              style={{
+                maxHeight: "200px",
+                overflowY: "auto",
+                border: "1px solid #333",
+                padding: "0.5rem",
+              }}
+            >
+              {availablePools.map((pool) => (
+                <label
+                  key={pool}
+                  style={{ display: "block", marginBottom: "0.25rem" }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedPools.includes(pool)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedPools([...selectedPools, pool]);
+                      } else {
+                        setSelectedPools(selectedPools.filter((p) => p !== pool));
+                      }
+                    }}
+                    style={{ marginRight: "0.5rem" }}
+                  />
+                  {pool}
+                </label>
+              ))}
+            </div>
+            <p style={{ fontSize: "0.9rem", marginTop: "0.5rem", opacity: 0.7 }}>
+              Selected: {selectedPools.length} / {availablePools.length} pools
+            </p>
           </div>
+        )}
+
+        {/* Add to Batch Button */}
+        <div className="control-buttons" style={{ marginBottom: "1rem" }}>
+          <button
+            onClick={addToCustomizationBatch}
+            disabled={isBusy || !selectedCustomProtocol}
+            title="Add current configuration to batch"
+          >
+            Add to Batch
+          </button>
+        </div>
+
+        {/* Current Customization Display */}
+        {currentCustomization && (
+          <div className="callout" style={{ marginTop: "1rem" }}>
+            <div>
+              <strong>Current Configuration</strong>
+            </div>
+            <div className="detail-grid" style={{ marginTop: "0.5rem" }}>
+              <div className="detail-row">
+                <span>Autoselect</span>
+                <strong>
+                  {currentCustomization.autoselect ? "Yes" : "No"}
+                </strong>
+              </div>
+              <div className="detail-row">
+                <span>Pools</span>
+                <strong>
+                  {currentCustomization.autoselect
+                    ? "Engine chooses"
+                    : currentCustomization.pools.length > 0
+                    ? `${currentCustomization.pools.length} pools`
+                    : "None"}
+                </strong>
+              </div>
+            </div>
+            {!currentCustomization.autoselect &&
+              currentCustomization.pools.length > 0 && (
+                <div style={{ marginTop: "0.5rem", fontSize: "0.85rem" }}>
+                  <strong>Pools:</strong>
+                  <div style={{ marginTop: "0.25rem" }}>
+                    {currentCustomization.pools.join(", ")}
+                  </div>
+                </div>
+              )}
+          </div>
+        )}
+
+        {/* Batch Queue */}
+        {customizationConfigs.length > 0 && (
+          <div style={{ marginTop: "1rem" }}>
+            <h3 style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>
+              Customization Batch ({customizationConfigs.length})
+            </h3>
+            <div
+              style={{
+                border: "1px solid #333",
+                padding: "0.5rem",
+                maxHeight: "250px",
+                overflowY: "auto",
+              }}
+            >
+              {customizationConfigs.map((config, index) => {
+                const protocol = protocols.find((p) => p.id === config.protocolId);
+                const chainName =
+                  config.chainId === 8453
+                    ? "Base"
+                    : config.chainId === 42161
+                    ? "Arbitrum"
+                    : config.chainId === 9745
+                    ? "Plasma"
+                    : `Chain ${config.chainId}`;
+                return (
+                  <div
+                    key={index}
+                    style={{
+                      padding: "0.5rem",
+                      marginBottom: "0.5rem",
+                      backgroundColor: "rgba(255,255,255,0.05)",
+                      borderRadius: "4px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: "bold" }}>
+                        {protocol?.name || config.protocolId} - {chainName}
+                      </div>
+                      <div style={{ fontSize: "0.85rem", opacity: 0.7 }}>
+                        {config.autoselect
+                          ? "Autoselect enabled"
+                          : `${config.pools.length} pool(s)`}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => removeFromCustomizationBatch(index)}
+                      style={{
+                        padding: "0.25rem 0.5rem",
+                        fontSize: "0.8rem",
+                        backgroundColor: "#ff4444",
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="control-buttons" style={{ marginTop: "0.5rem" }}>
+              <button
+                onClick={applyCustomizationBatch}
+                disabled={isBusy || !address}
+                title={
+                  !address
+                    ? "Connect wallet first"
+                    : "Apply all customizations"
+                }
+                style={{ backgroundColor: "#22c55e" }}
+              >
+                Apply Batch ({customizationConfigs.length})
+              </button>
+              <button
+                onClick={clearCustomizationBatch}
+                disabled={isBusy}
+                style={{ backgroundColor: "#ff4444" }}
+              >
+                Clear Batch
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!address && (
+          <p className="empty">
+            Connect your wallet to configure protocol/pool customizations.
+          </p>
+        )}
+
+        {protocols.length === 0 && (
+          <p className="empty">
+            Fetch protocols first using the Protocols section above.
+          </p>
         )}
       </section>
 
