@@ -1,21 +1,25 @@
-:root {
-  font-family: "Inter", "SF Pro Display", system-ui, -apple-system, sans-serif;
-  line-height: 1.4;
-  font-weight: 400;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  color: #f8fafc;
-  background: radial-gradient(circle at top, #0b1930, #01060d);
-}
+@import "tailwindcss";
 
-* {
-  box-sizing: border-box;
+@theme {
+  --color-dark-950: #01060d;
+  --color-dark-900: #050b13;
+  --color-dark-800: #0b1220;
+  --color-dark-700: #0f172a;
+  --color-dark-600: #1f2937;
+  --color-dark-500: #334155;
+  --color-dark-400: #4b5563;
+  --color-primary: #6d5bfd;
+  --color-primary-light: #a78bfa;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
+  font-family: "Inter", "SF Pro Display", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   background: radial-gradient(circle at top, #0b1930, #01060d);
+  color: #f8fafc;
 }
 
 #root {
