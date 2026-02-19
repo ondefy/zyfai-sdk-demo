@@ -46,6 +46,7 @@ export function SmartWalletPanel() {
       setIsBusy(true);
       setStatus("Deploying Safe smart wallet…");
       const res = await sdk!.deploySafe(address!, selectedChain, "aggressive");
+      console.log("deploySafe res", res);
       setDeployResult(res);
       setStatus(
         res.success

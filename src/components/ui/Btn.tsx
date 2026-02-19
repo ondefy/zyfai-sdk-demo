@@ -4,13 +4,13 @@ type Variant = "default" | "primary" | "danger" | "success";
 
 const variants: Record<Variant, string> = {
   default:
-    "bg-dark-600 text-slate-100 hover:bg-dark-500 disabled:opacity-50 disabled:cursor-not-allowed",
+    "bg-[#1a242d] text-[#E7EAED] border border-[#2a3640] hover:bg-[#243038] hover:border-[#3a4a58] disabled:opacity-50 disabled:cursor-not-allowed",
   primary:
-    "bg-primary text-dark-950 hover:bg-primary-light disabled:opacity-50 disabled:cursor-not-allowed",
+    "bg-[#4499E1] text-white hover:bg-[#5aacf0] disabled:opacity-50 disabled:cursor-not-allowed",
   danger:
-    "bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed",
+    "bg-red-600/90 text-white hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed",
   success:
-    "bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed",
+    "bg-emerald-600/90 text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed",
 };
 
 interface BtnProps extends ButtonHTMLAttributes<HTMLButtonElement> {

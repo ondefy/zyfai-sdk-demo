@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import {
   createContext,
   useContext,
@@ -91,13 +92,14 @@ export function SdkProvider({ children }: PropsWithChildren) {
       console.warn("Set VITE_ZYFAI_API_KEY to use the SDK.");
       return null;
     }
-    return new ZyfaiSDK({ apiKey });
+    return new ZyfaiSDK({ apiKey, referralSource: "openclaw" });
   }, []);
 
   // Sync chain when wallet changes network
   useEffect(() => {
     if (!address || !isConnected || !chain) return;
     if (isSupportedChain(chain.id)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedChain(chain.id);
     }
   }, [address, isConnected, chain]);
@@ -192,6 +194,7 @@ export function SdkProvider({ children }: PropsWithChildren) {
 // Hook
 // ---------------------------------------------------------------------------
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSdk() {
   const ctx = useContext(SdkContext);
   if (!ctx) throw new Error("useSdk must be used within <SdkProvider>");

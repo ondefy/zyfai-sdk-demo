@@ -94,7 +94,7 @@ export function EarningsPanel() {
       const res = await sdk!.getDailyApyHistory(walletInfo.address, apyDays);
       setApyHistory(res);
       setStatus(
-        `APY history loaded. Average: ${res.averageWeightedApy?.toFixed(2) ?? 0}%`
+        `APY history loaded. Average: ${res.weightedApyWithRzfiAfterFee?.toFixed(2) ?? 0}%`
       );
     } catch (e) {
       setStatus(`Failed to get APY history: ${(e as Error).message}`);
@@ -265,7 +265,7 @@ export function EarningsPanel() {
                 Average Weighted APY
               </span>
               <strong className="text-xl text-primary">
-                {apyHistory.averageWeightedApy?.toFixed(2) ?? 0}%
+                {apyHistory.weightedApyWithRzfiAfterFee?.toFixed(2) ?? 0}%
               </strong>
             </div>
             <div className="rounded-xl border border-dark-600 bg-dark-900 p-4 text-center">

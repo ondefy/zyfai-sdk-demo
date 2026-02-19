@@ -61,6 +61,23 @@ export function UserDetailsPanel() {
     }
   };
 
+  const resumeAgent = async () => {
+    if (!ensureWallet()) return;
+    try {
+      setIsBusy(true);
+      setStatus("Resuming agent…");
+      await sdk!.resumeAgent();
+      const res = await sdk!.getUserDetails();
+      console.log("resumeAgent res", res);
+      setUserDetails(res);
+      setStatus(`Agent resumed. ${res.user.protocols?.length || 0} protocols active.`);
+    } catch (e) {
+      setStatus(`Failed to resume agent: ${(e as Error).message}`);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const user = userDetails?.user;
 
   return (
@@ -86,6 +103,9 @@ export function UserDetailsPanel() {
         </Btn>
         <Btn onClick={pauseAgent} disabled={isBusy || !address} variant="danger">
           Pause Agent
+        </Btn>
+        <Btn onClick={resumeAgent} disabled={isBusy || !address} variant="success">
+          Resume Agent
         </Btn>
       </div>
 
