@@ -86,7 +86,7 @@ export function PlatformStatsPanel() {
             <div className="text-xs text-slate-400">
               {apyPerStrategy.data.map((c) => (
                 <div key={c.chain_id} className="py-0.5">
-                  {formatChainName(c.chain_id)} – {c.average_apy_without_fee.toFixed(2)}%
+                  {formatChainName(c.chain_id)} – {c.average_apy_with_fee.toFixed(2)}%
                 </div>
               ))}
             </div>
