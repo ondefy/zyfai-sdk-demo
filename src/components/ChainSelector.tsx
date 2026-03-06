@@ -37,7 +37,7 @@ export function ChainSelector() {
       setIsBusy(true);
       setStatus("Fetching positions…");
       const res = await sdk!.getPositions(address!, selectedChain);
-      const count = res.positions?.length ?? 0;
+      const count = res.portfolio?.positions?.length ?? 0;
       setStatus(count > 0 ? `Loaded ${count} position bundles.` : "No positions found.");
     } catch (e) {
       setStatus(`Failed to load positions: ${(e as Error).message}`);

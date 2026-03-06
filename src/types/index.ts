@@ -1,9 +1,3 @@
-import type { Position } from "@zyfai/sdk";
-
-export type PositionBundle = Position & {
-  positions?: Position["positions"];
-  chain?: string;
-};
 
 export interface OpportunityRisk {
   poolName: string;

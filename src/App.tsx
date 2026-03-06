@@ -20,7 +20,6 @@ import { IdentityRegistryPanel } from "./components/IdentityRegistryPanel";
 
 // ── Data & analytics ──
 import { PositionsPanel } from "./components/PositionsPanel";
-import { PortfolioPanel } from "./components/PortfolioPanel";
 import { YieldOpportunitiesPanel } from "./components/YieldOpportunitiesPanel";
 import { OpportunitiesRiskPanel } from "./components/OpportunitiesRiskPanel";
 import { BestOpportunityPanel } from "./components/BestOpportunityPanel";
@@ -72,7 +71,6 @@ export default function App() {
         {/* ── 6. Positions & Portfolio ── */}
         <SectionTitle>Positions & Portfolio</SectionTitle>
         <PositionsPanel />
-        <PortfolioPanel />
 
         {/* ── 7. Yield opportunities & risk ── */}
         <SectionTitle>Yield Opportunities & Risk</SectionTitle>
