@@ -46,11 +46,17 @@ export function DepositWithdrawPanel() {
           ? "Withdrawing all funds from Zyfai…"
           : `Withdrawing ${withdrawAmount} from Zyfai…`
       );
+
+      console.log("withdrawAmount", withdrawAmount);
+      console.log("address", address);
+      console.log("selectedChain", selectedChain);
       const res = await sdk!.withdrawFunds(
         address!,
         selectedChain,
         withdrawAmount || undefined
       );
+
+      console.log("res", res);
       setWithdrawResult(res);
       setStatus(res.success ? "Withdraw submitted." : "Withdraw reported a failure.");
     } catch (e) {
