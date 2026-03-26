@@ -1,4 +1,4 @@
-import { useSdk } from "../context/SdkContext";
+import { useSdk, type ProfileAsset } from "../context/SdkContext";
 import { Btn, Panel, DetailRow } from "./ui";
 import { formatChainName } from "../utils/formatters";
 
@@ -11,6 +11,9 @@ export function UserDetailsPanel() {
     setIsBusy,
     userDetails,
     setUserDetails,
+    protocols: chainProtocols,
+    profileAsset,
+    selectProfileAsset,
     ensureWallet,
   } = useSdk();
 
@@ -19,7 +22,7 @@ export function UserDetailsPanel() {
     try {
       setIsBusy(true);
       setStatus("Fetching user details…");
-      const res = await sdk!.getUserDetails();
+      const res = await sdk!.getUserDetails(profileAsset);
       setUserDetails(res);
       setStatus("User details loaded.");
     } catch (e) {
@@ -34,8 +37,8 @@ export function UserDetailsPanel() {
     try {
       setIsBusy(true);
       setStatus(`Updating strategy to ${s}…`);
-      await sdk!.updateUserProfile({ strategy: s });
-      const res = await sdk!.getUserDetails();
+      await sdk!.updateUserProfile({ strategy: s, asset: profileAsset });
+      const res = await sdk!.getUserDetails(profileAsset);
       setUserDetails(res);
       setStatus(`Strategy updated to ${s}.`);
     } catch (e) {
@@ -51,7 +54,7 @@ export function UserDetailsPanel() {
       setIsBusy(true);
       setStatus("Pausing agent…");
       await sdk!.pauseAgent();
-      const res = await sdk!.getUserDetails();
+      const res = await sdk!.getUserDetails(profileAsset);
       setUserDetails(res);
       setStatus("Agent paused. All protocols cleared.");
     } catch (e) {
@@ -67,10 +70,11 @@ export function UserDetailsPanel() {
       setIsBusy(true);
       setStatus("Resuming agent…");
       await sdk!.resumeAgent();
-      const res = await sdk!.getUserDetails();
-      console.log("resumeAgent res", res);
+      const res = await sdk!.getUserDetails(profileAsset);
       setUserDetails(res);
-      setStatus(`Agent resumed. ${res.user.protocols?.length || 0} protocols active.`);
+      setStatus(
+        `Agent resumed. ${res.protocols?.length ?? 0} protocols on ${profileAsset} profile (see Advanced panel for both assets).`
+      );
     } catch (e) {
       setStatus(`Failed to resume agent: ${(e as Error).message}`);
     } finally {
@@ -78,13 +82,32 @@ export function UserDetailsPanel() {
     }
   };
 
-  const user = userDetails?.user;
+  const u = userDetails;
+
+  const protocolLabels =
+    u?.protocols?.map(
+      (id) => chainProtocols.find((p) => p.id === id)?.name ?? id
+    ) ?? [];
 
   return (
     <Panel
       title="User Details"
-      description="View and manage your profile, strategy, and agent settings."
+      description="Profile is per-asset (USDC vs WETH). Cross-chain requires both crosschainStrategy and omniAccount — enable only when the user explicitly wants it."
     >
+      <label className="mb-3 flex max-w-xs flex-col gap-1 text-sm text-slate-400">
+        Profile asset
+        <select
+          value={profileAsset}
+          onChange={(e) =>
+            void selectProfileAsset(e.target.value as ProfileAsset)
+          }
+          className="rounded-lg border border-dark-500 bg-dark-700 py-2 pl-3 pr-10 text-sm text-white"
+        >
+          <option value="USDC">USDC</option>
+          <option value="WETH">WETH</option>
+        </select>
+      </label>
+
       <div className="flex flex-wrap gap-3">
         <Btn onClick={fetchUserDetails} disabled={isBusy || !address}>
           Get User Details
@@ -109,49 +132,49 @@ export function UserDetailsPanel() {
         </Btn>
       </div>
 
-      {user ? (
+      {u ? (
         <div className="mt-4 flex flex-col gap-3">
-          <DetailRow label="Address">
+          <DetailRow label="EOA (connected)">
             <code className="rounded bg-dark-800 px-1.5 py-0.5 font-mono text-xs">
-              {user.address}
+              {address ?? "—"}
             </code>
           </DetailRow>
           <DetailRow label="Smart Wallet">
             <code className="rounded bg-dark-800 px-1.5 py-0.5 font-mono text-xs">
-              {user.smartWallet}
+              {u.smartWallet ?? "—"}
             </code>
           </DetailRow>
           <DetailRow label="Chains">
-            {user.chains?.map(formatChainName).join(", ") || "None"}
+            {u.chains?.map(formatChainName).join(", ") || "None"}
           </DetailRow>
           <DetailRow label="Strategy">
-            {user.strategy || "Default"}
+            {u.strategy || "Default"}
           </DetailRow>
           <DetailRow label="Session Key Active">
-            {user.hasActiveSessionKey ? "Yes" : "No"}
+            {u.hasActiveSessionKey ? "Yes" : "No"}
           </DetailRow>
           <DetailRow label="Auto Select Protocols">
-            {user.autoSelectProtocols ? "Yes" : "No"}
+            {u.autoSelectProtocols ? "Yes" : "No"}
           </DetailRow>
           <DetailRow label="Omni-Account">
-            {user.omniAccount ? "Yes" : "No"}
+            {u.omniAccount ? "Yes" : "No"}
           </DetailRow>
           <DetailRow label="Cross-chain">
-            {user.crosschainStrategy ? "Yes" : "No"}
+            {u.crosschainStrategy ? "Yes" : "No"}
           </DetailRow>
           <DetailRow label="Splitting">
-            {user.splitting ? `Yes (Min: ${user.minSplits || "N/A"})` : "No"}
+            {u.splitting ? `Yes (Min: ${u.minSplits || "N/A"})` : "No"}
           </DetailRow>
           <DetailRow label="Protocols">
-            {user.protocols?.length || 0}
-            {user.protocols?.length > 0 && (
+            {u.protocols?.length || 0}
+            {protocolLabels.length > 0 && (
               <span className="ml-2 text-xs opacity-70">
-                ({user.protocols.map((p) => p.name).join(", ")})
+                ({protocolLabels.join(", ")})
               </span>
             )}
           </DetailRow>
-          {user.agentName && (
-            <DetailRow label="Agent Name">{user.agentName}</DetailRow>
+          {u.agentName && (
+            <DetailRow label="Agent Name">{u.agentName}</DetailRow>
           )}
         </div>
       ) : (

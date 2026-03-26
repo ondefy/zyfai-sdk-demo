@@ -14,6 +14,7 @@ export function ProtocolManagementPanel() {
     protocols,
     setProtocols,
     selectedChain,
+    profileAsset,
     ensureSdk,
     ensureWallet,
   } = useSdk();
@@ -46,7 +47,7 @@ export function ProtocolManagementPanel() {
       setStatus("Updating protocols…");
       await sdk!.updateUserProfile({ protocols: selected });
       setStatus(`Protocols updated (${selected.length}).`);
-      const res = await sdk!.getUserDetails();
+      const res = await sdk!.getUserDetails(profileAsset);
       setUserDetails(res);
     } catch (e) {
       setStatus(`Failed to update protocols: ${(e as Error).message}`);

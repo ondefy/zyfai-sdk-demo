@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -14,9 +15,11 @@ import type {
   Protocol,
   SmartWalletResponse,
   SupportedChainId,
-  UserDetailsResponse,
+  UpdateUserProfileResponse,
 } from "@zyfai/sdk";
 import { isSupportedChain } from "../utils/formatters";
+
+export type ProfileAsset = "USDC" | "WETH";
 
 // ---------------------------------------------------------------------------
 // Context shape
@@ -41,10 +44,14 @@ interface SdkContextValue {
   // Shared data (used by multiple panels)
   walletInfo: SmartWalletResponse | null;
   setWalletInfo: (w: SmartWalletResponse | null) => void;
-  userDetails: UserDetailsResponse | null;
-  setUserDetails: (u: UserDetailsResponse | null) => void;
+  userDetails: UpdateUserProfileResponse | null;
+  setUserDetails: (u: UpdateUserProfileResponse | null) => void;
   protocols: Protocol[];
   setProtocols: (p: Protocol[]) => void;
+
+  /** Which asset profile getUserDetails / updateUserProfile target (USDC vs WETH). */
+  profileAsset: ProfileAsset;
+  selectProfileAsset: (asset: ProfileAsset) => Promise<void>;
 
   // Helpers
   ensureSdk: () => boolean;
@@ -80,10 +87,11 @@ export function SdkProvider({ children }: PropsWithChildren) {
   const [walletInfo, setWalletInfo] = useState<SmartWalletResponse | null>(
     null
   );
-  const [userDetails, setUserDetails] = useState<UserDetailsResponse | null>(
+  const [userDetails, setUserDetails] = useState<UpdateUserProfileResponse | null>(
     null
   );
   const [protocols, setProtocols] = useState<Protocol[]>([]);
+  const [profileAsset, setProfileAsset] = useState<ProfileAsset>("USDC");
 
   // SDK instance (stable across renders)
   const sdk = useMemo(() => {
@@ -99,7 +107,6 @@ export function SdkProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     if (!address || !isConnected || !chain) return;
     if (isSupportedChain(chain.id)) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedChain(chain.id);
     }
   }, [address, isConnected, chain]);
@@ -144,21 +151,36 @@ export function SdkProvider({ children }: PropsWithChildren) {
     return true;
   };
 
-  const refreshUserDetails = async () => {
+  const selectProfileAsset = useCallback(
+    async (asset: ProfileAsset) => {
+      setProfileAsset(asset);
+      if (!sdk) return;
+      try {
+        const res = await sdk.getUserDetails(asset);
+        setUserDetails(res);
+      } catch {
+        // silent
+      }
+    },
+    [sdk]
+  );
+
+  const refreshUserDetails = useCallback(async () => {
     if (!sdk) return;
     try {
-      const res = await sdk.getUserDetails();
+      const res = await sdk.getUserDetails(profileAsset);
       setUserDetails(res);
     } catch {
       // silent
     }
-  };
+  }, [sdk, profileAsset]);
 
   const disconnectWallet = () => {
     disconnect();
     setWalletInfo(null);
     setUserDetails(null);
     setProtocols([]);
+    setProfileAsset("USDC");
     setStatus("Wallet disconnected.");
   };
 
@@ -180,6 +202,8 @@ export function SdkProvider({ children }: PropsWithChildren) {
     setUserDetails,
     protocols,
     setProtocols,
+    profileAsset,
+    selectProfileAsset,
     ensureSdk,
     ensureWallet,
     refreshUserDetails,

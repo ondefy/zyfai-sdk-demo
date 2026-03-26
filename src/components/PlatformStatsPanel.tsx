@@ -46,7 +46,13 @@ export function PlatformStatsPanel() {
     try {
       setIsBusy(true);
       setStatus("Fetching APY per strategy…");
-      const res = await sdk!.getAPYPerStrategy(false, 7, "conservative");
+      const res = await sdk!.getAPYPerStrategy(
+        false,
+        7,
+        "conservative",
+        8453,
+        "USDC"
+      );
       setApyPerStrategy(res);
       setStatus("APY per strategy loaded.");
     } catch (e) {
@@ -66,17 +72,7 @@ export function PlatformStatsPanel() {
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {tvl && (
-          <StatCard label="Total TVL" value={formatUsd(tvl.totalTvl)}>
-            {tvl.byChain && Object.keys(tvl.byChain).length > 0 && (
-              <div className="mt-2 border-t border-dark-600 pt-2 text-xs text-slate-400">
-                {Object.entries(tvl.byChain).map(([chain, val]) => (
-                  <div key={chain} className="py-0.5">
-                    {formatChainName(chain)}: {formatUsd(val)}
-                  </div>
-                ))}
-              </div>
-            )}
-          </StatCard>
+          <StatCard label="Total TVL" value={formatUsd(tvl.totalTvl)} />
         )}
         {volume && (
           <StatCard label="Total Volume" value={formatUsd(volume.volumeInUSD)} />

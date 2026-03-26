@@ -3,6 +3,7 @@ import type { SessionKeyResponse } from "@zyfai/sdk";
 import { useSdk } from "../context/SdkContext";
 import { Btn, Panel, DetailRow } from "./ui";
 import { truncate } from "../utils/formatters";
+import { createSessionKeyWithActivationCheck } from "../utils/ensure-session-key";
 
 export function SessionKeyPanel() {
   const {
@@ -26,10 +27,13 @@ export function SessionKeyPanel() {
     try {
       setIsBusy(true);
       setStatus("Creating + activating session key…");
-      const res = await sdk!.createSessionKey(address!, selectedChain);
-      console.log("res", res);
+      const res = await createSessionKeyWithActivationCheck(
+        sdk!,
+        address!,
+        selectedChain
+      );
       setSessionInfo(res);
-      setStatus("Session key registered with Zyfai API.");
+      setStatus("Session key active and registered with Zyfai API.");
       await refreshUserDetails();
     } catch (e) {
       setStatus(`Failed to create session key: ${(e as Error).message}`);
@@ -61,7 +65,7 @@ export function SessionKeyPanel() {
           </DetailRow>
           <DetailRow label="Activation">
             {sessionInfo.sessionActivation?.isActive ||
-            userDetails?.user?.hasActiveSessionKey
+            userDetails?.hasActiveSessionKey
               ? "Active"
               : "Pending"}
           </DetailRow>
