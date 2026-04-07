@@ -29,6 +29,7 @@ import { PlatformStatsPanel } from "./components/PlatformStatsPanel";
 import { SdkKeyInfoPanel } from "./components/SdkKeyInfoPanel";
 import { ActiveWalletsPanel } from "./components/ActiveWalletsPanel";
 import { FirstTopupHistoryPanel } from "./components/FirstTopupHistoryPanel";
+// import { Vault } from "./components/Vault";
 
 // ---------------------------------------------------------------------------
 // Main App layout
@@ -38,10 +39,14 @@ export default function App() {
   return (
     <SdkProvider>
       <div className="flex flex-col gap-6">
+
         {/* ── Header & status ── */}
         <Header />
         <StatusBar />
         <ChainSelector />
+
+        {/* <Vault /> */}
+
 
         {/* ── 1. Account deployment ── */}
         <SectionTitle>Account Deployment</SectionTitle>
