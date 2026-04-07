@@ -2,16 +2,39 @@ import { useState } from "react";
 import type { DepositResponse, WithdrawResponse } from "@zyfai/sdk";
 import { useSdk } from "../context/SdkContext";
 import { Btn, Panel, Callout } from "./ui";
-import { truncate, getExplorerUrl } from "../utils/formatters";
+import { truncate, getExplorerUrl, formatChainName } from "../utils/formatters";
+
+/** Symbols accepted by depositFunds (4th arg) and withdrawFunds (tokenSymbol). */
+type DepositWithdrawAsset = "USDC" | "WETH";
+
+const ASSET_OPTIONS: { value: DepositWithdrawAsset; label: string }[] = [
+  { value: "USDC", label: "USDC" },
+  { value: "WETH", label: "WETH" },
+];
 
 export function DepositWithdrawPanel() {
-  const { sdk, address, isBusy, selectedChain, setStatus, setIsBusy, ensureWallet } =
-    useSdk();
+  const {
+    sdk,
+    address,
+    isBusy,
+    selectedChain,
+    setStatus,
+    setIsBusy,
+    ensureWallet,
+  } = useSdk();
 
+  const [depositAsset, setDepositAsset] = useState<DepositWithdrawAsset>("USDC");
   const [depositAmount, setDepositAmount] = useState("");
-  const [depositResult, setDepositResult] = useState<DepositResponse | null>(null);
+  const [depositOutcome, setDepositOutcome] = useState<{
+    res: DepositResponse;
+    asset: DepositWithdrawAsset;
+  } | null>(null);
+  const [withdrawAsset, setWithdrawAsset] = useState<DepositWithdrawAsset>("USDC");
   const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [withdrawResult, setWithdrawResult] = useState<WithdrawResponse | null>(null);
+  const [withdrawOutcome, setWithdrawOutcome] = useState<{
+    res: WithdrawResponse;
+    asset: DepositWithdrawAsset;
+  } | null>(null);
 
   const executeDeposit = async () => {
     if (!ensureWallet()) return;
@@ -21,9 +44,14 @@ export function DepositWithdrawPanel() {
     }
     try {
       setIsBusy(true);
-      setStatus("Depositing funds to Zyfai…");
-      const res = await sdk!.depositFunds(address!, selectedChain, depositAmount);
-      setDepositResult(res);
+      setStatus(`Depositing ${depositAsset} to Zyfai…`);
+      const res = await sdk!.depositFunds(
+        address!,
+        selectedChain,
+        depositAmount,
+        depositAsset
+      );
+      setDepositOutcome({ res, asset: depositAsset });
       setStatus(
         res.success
           ? `Deposit submitted. Tx: ${truncate(res.txHash, 10)}`
@@ -43,21 +71,18 @@ export function DepositWithdrawPanel() {
       const isFullWithdraw = !withdrawAmount || withdrawAmount === "0";
       setStatus(
         isFullWithdraw
-          ? "Withdrawing all funds from Zyfai…"
-          : `Withdrawing ${withdrawAmount} from Zyfai…`
+          ? `Withdrawing all ${withdrawAsset} from Zyfai…`
+          : `Withdrawing ${withdrawAmount} (${withdrawAsset}) from Zyfai…`
       );
 
-      console.log("withdrawAmount", withdrawAmount);
-      console.log("address", address);
-      console.log("selectedChain", selectedChain);
       const res = await sdk!.withdrawFunds(
         address!,
         selectedChain,
-        withdrawAmount || undefined
+        withdrawAmount || undefined,
+        withdrawAsset
       );
 
-      console.log("res", res);
-      setWithdrawResult(res);
+      setWithdrawOutcome({ res, asset: withdrawAsset });
       setStatus(res.success ? "Withdraw submitted." : "Withdraw reported a failure.");
     } catch (e) {
       setStatus(`Failed to withdraw: ${(e as Error).message}`);
@@ -69,16 +94,32 @@ export function DepositWithdrawPanel() {
   return (
     <Panel
       title="Deposit & Withdraw"
-      description="Transfer tokens into your Zyfai smart wallet or withdraw them back. Amounts are in least decimal units (e.g. 1 USDC = 1000000)."
+      description={`Choose USDC or WETH and pass it to the SDK: depositFunds(userAddress, chainId, amount, asset?) and withdrawFunds(userAddress, chainId, amount?, tokenSymbol?). Without asset, the SDK still defaults by chain (e.g. USDC on ${formatChainName(8453)} / ${formatChainName(42161)}, USDT on ${formatChainName(9745)}). Amounts are least decimal units (USDC: 6 decimals; WETH: 18). Withdrawals go to your EOA and may be asynchronous.`}
     >
       {/* ---------- Deposit ---------- */}
       <div className="mb-6">
         <h3 className="mb-2 text-base font-semibold text-white">Deposit</h3>
+        <label className="mb-3 flex max-w-xs flex-col gap-1 text-sm text-slate-400">
+          Asset
+          <select
+            value={depositAsset}
+            onChange={(e) =>
+              setDepositAsset(e.target.value as DepositWithdrawAsset)
+            }
+            className="rounded-lg border border-dark-500 bg-dark-700 py-2 pl-3 pr-10 text-sm text-white"
+          >
+            {ASSET_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="flex flex-col gap-1 text-sm text-slate-400">
           Amount (least decimals)
           <input
             type="text"
-            placeholder="e.g. 1000000 for 1 USDC"
+            placeholder="USDC: 1000000 = 1 USDC · WETH: 1e18 wei = 1 WETH"
             value={depositAmount}
             onChange={(e) => setDepositAmount(e.target.value)}
             className="rounded-lg border border-dark-500 bg-dark-700 px-3 py-2 text-sm text-white placeholder:text-dark-400 focus:border-primary focus:outline-none"
@@ -89,18 +130,18 @@ export function DepositWithdrawPanel() {
             Execute Deposit
           </Btn>
         </div>
-        {depositResult && (
+        {depositOutcome && (
           <Callout>
-            <strong>Last Deposit</strong>
+            <strong>Last Deposit ({depositOutcome.asset})</strong>
             <p className="mt-1">
-              Amount: {depositResult.amount} · Tx:{" "}
+              Amount: {depositOutcome.res.amount} · Tx:{" "}
               <a
-                href={getExplorerUrl(selectedChain, depositResult.txHash)}
+                href={getExplorerUrl(selectedChain, depositOutcome.res.txHash)}
                 target="_blank"
                 rel="noreferrer"
                 className="text-primary-light hover:underline"
               >
-                {truncate(depositResult.txHash, 10)}
+                {truncate(depositOutcome.res.txHash, 10)}
               </a>
             </p>
           </Callout>
@@ -110,11 +151,27 @@ export function DepositWithdrawPanel() {
       {/* ---------- Withdraw ---------- */}
       <div>
         <h3 className="mb-2 text-base font-semibold text-white">Withdraw</h3>
+        <label className="mb-3 flex max-w-xs flex-col gap-1 text-sm text-slate-400">
+          Asset (tokenSymbol)
+          <select
+            value={withdrawAsset}
+            onChange={(e) =>
+              setWithdrawAsset(e.target.value as DepositWithdrawAsset)
+            }
+            className="rounded-lg border border-dark-500 bg-dark-700 py-2 pl-3 pr-10 text-sm text-white"
+          >
+            {ASSET_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="flex flex-col gap-1 text-sm text-slate-400">
-          Amount (optional, leave empty for full withdrawal)
+          Amount (optional, leave empty for full withdrawal of this asset)
           <input
             type="text"
-            placeholder="Empty = full withdrawal"
+            placeholder="Empty = full withdrawal for selected asset"
             value={withdrawAmount}
             onChange={(e) => setWithdrawAmount(e.target.value)}
             className="rounded-lg border border-dark-500 bg-dark-700 px-3 py-2 text-sm text-white placeholder:text-dark-400 focus:border-primary focus:outline-none"
@@ -125,11 +182,12 @@ export function DepositWithdrawPanel() {
             Execute Withdraw
           </Btn>
         </div>
-        {withdrawResult && (
+        {withdrawOutcome && (
           <Callout>
-            <strong>Last Withdraw</strong>
+            <strong>Last Withdraw ({withdrawOutcome.asset})</strong>
             <p className="mt-1">
-              Type: {withdrawResult.type} · Amount: {withdrawResult.amount}
+              Type: {withdrawOutcome.res.type} · Amount:{" "}
+              {withdrawOutcome.res.amount}
             </p>
           </Callout>
         )}

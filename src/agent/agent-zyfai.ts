@@ -1,4 +1,5 @@
 import { isSupportedChain, ZyfaiSDK, type DeploySafeResponse, type SessionKeyResponse, type SmartWalletResponse, type Strategy, type SupportedChainId } from "@zyfai/sdk";
+import { createSessionKeyWithActivationCheck } from "../utils/ensure-session-key";
 
 export class ZyfaiAgent {
     private sdk: ZyfaiSDK;
@@ -119,6 +120,10 @@ export class ZyfaiAgent {
       const validatedChainId = this.validateChainId(chainId);
       const address = this.getConnectedAddress();
   
-      return this.sdk.createSessionKey(address, validatedChainId);
+      return createSessionKeyWithActivationCheck(
+        this.sdk,
+        address,
+        validatedChainId
+      );
     }
   }

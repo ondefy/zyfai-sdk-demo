@@ -13,6 +13,7 @@ export function PoolCustomizationPanel() {
     setIsBusy,
     setUserDetails,
     protocols,
+    profileAsset,
     ensureSdk,
     ensureWallet,
   } = useSdk();
@@ -80,7 +81,7 @@ export function PoolCustomizationPanel() {
       await sdk!.customizeBatch(batch);
       setStatus(`Applied ${batch.length} customizations!`);
       setBatch([]);
-      const res = await sdk!.getUserDetails();
+      const res = await sdk!.getUserDetails(profileAsset);
       setUserDetails(res);
     } catch (e) {
       setStatus(`Failed: ${(e as Error).message}`);

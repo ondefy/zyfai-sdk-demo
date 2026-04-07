@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useSdk } from "../context/SdkContext";
+import type { UpdateUserProfileRequest } from "@zyfai/sdk";
+import { useSdk, type ProfileAsset } from "../context/SdkContext";
 import { Btn, Panel, DetailRow } from "./ui";
 
 export function AdvancedProfilePanel() {
@@ -12,6 +13,8 @@ export function AdvancedProfilePanel() {
     userDetails,
     setUserDetails,
     protocols,
+    profileAsset,
+    selectProfileAsset,
     ensureWallet,
   } = useSdk();
 
@@ -24,10 +27,9 @@ export function AdvancedProfilePanel() {
   const [autocompounding, setAutocompounding] = useState(true);
   const [agentName, setAgentName] = useState("");
 
-  // Sync with user details
   useEffect(() => {
     if (!userDetails) return;
-    const u = userDetails.user;
+    const u = userDetails;
     setSplitting(u.splitting ?? false);
     setMinSplits(u.minSplits ?? 2);
     setCrossChain(u.crosschainStrategy ?? false);
@@ -35,7 +37,7 @@ export function AdvancedProfilePanel() {
     setAutocompounding(u.autocompounding ?? true);
     setAutoSelect(u.autoSelectProtocols ?? true);
     if (u.agentName) setAgentName(u.agentName);
-    if (u.protocols?.length) setSelectedProtocolIds(u.protocols.map((p) => p.id));
+    setSelectedProtocolIds(u.protocols?.length ? [...u.protocols] : []);
   }, [userDetails]);
 
   const handleUpdate = async () => {
@@ -43,8 +45,8 @@ export function AdvancedProfilePanel() {
     try {
       setIsBusy(true);
       setStatus("Updating profile…");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const payload: any = {
+      const payload: UpdateUserProfileRequest = {
+        asset: profileAsset,
         autoSelectProtocols: autoSelect,
         splitting,
         crosschainStrategy: crossChain,
@@ -57,7 +59,7 @@ export function AdvancedProfilePanel() {
 
       await sdk!.updateUserProfile(payload);
       setStatus("Profile updated!");
-      const res = await sdk!.getUserDetails();
+      const res = await sdk!.getUserDetails(profileAsset);
       setUserDetails(res);
     } catch (e) {
       setStatus(`Failed to update profile: ${(e as Error).message}`);
@@ -66,14 +68,27 @@ export function AdvancedProfilePanel() {
     }
   };
 
-  const user = userDetails?.user;
+  const user = userDetails;
 
   return (
     <Panel
       title="Advanced Profile Configuration"
-      description="Configure protocols, splitting, cross-chain, omni-account, and more."
+      description="Settings apply per asset. Use cross-chain only when the user asks; both omni-account and cross-chain strategy must be on for cross-chain execution."
     >
-      {/* Protocol selection */}
+      <label className="mb-4 flex max-w-xs flex-col gap-1 text-sm text-slate-400">
+        Profile asset
+        <select
+          value={profileAsset}
+          onChange={(e) =>
+            void selectProfileAsset(e.target.value as ProfileAsset)
+          }
+          className="rounded-lg border border-dark-500 bg-dark-700 py-2 pl-3 pr-10 text-sm text-white"
+        >
+          <option value="USDC">USDC</option>
+          <option value="WETH">WETH</option>
+        </select>
+      </label>
+
       <div className="mb-4">
         <h3 className="mb-2 text-sm font-semibold text-white">
           Protocol Selection
@@ -119,7 +134,6 @@ export function AdvancedProfilePanel() {
         )}
       </div>
 
-      {/* Feature toggles */}
       <div className="mb-4 space-y-2">
         <h3 className="mb-2 text-sm font-semibold text-white">Features</h3>
         <Checkbox label="Position Splitting" checked={splitting} onChange={setSplitting} />
@@ -143,7 +157,6 @@ export function AdvancedProfilePanel() {
         <Checkbox label="Auto-compounding" checked={autocompounding} onChange={setAutocompounding} />
       </div>
 
-      {/* Agent name */}
       <label className="mb-4 flex flex-col gap-1 text-sm text-slate-400">
         Agent Name (optional)
         <input
@@ -159,17 +172,16 @@ export function AdvancedProfilePanel() {
         Update Profile
       </Btn>
 
-      {/* Current config display */}
       {user && (
         <div className="mt-4 flex flex-col gap-2 rounded-lg border border-dark-600 bg-dark-900 p-3">
           <span className="text-xs font-semibold uppercase text-slate-400">
-            Current Configuration
+            Current Configuration ({profileAsset})
           </span>
           <DetailRow label="Auto-select Protocols">
             {user.autoSelectProtocols ? "Yes" : "No"}
           </DetailRow>
           <DetailRow label="Protocols Configured">
-            {user.protocols.length}
+            {user.protocols?.length ?? 0}
           </DetailRow>
           <DetailRow label="Splitting">
             {user.splitting ? `Yes (Min: ${user.minSplits || "N/A"})` : "No"}
@@ -198,7 +210,6 @@ export function AdvancedProfilePanel() {
   );
 }
 
-// Small helper component
 function Checkbox({
   label,
   checked,
