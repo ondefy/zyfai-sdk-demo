@@ -5,8 +5,8 @@ import type {
   DailyApyHistoryResponse,
 } from "@zyfai/sdk";
 import { useSdk } from "../context/SdkContext";
-import { Btn, Panel, DetailRow } from "./ui";
-import { formatUsd, formatChainName } from "../utils/formatters";
+import { Btn, Panel } from "./ui";
+import { formatUsd } from "../utils/formatters";
 import {
   averageTokenNumbers,
   blendedApyFromDailyEntry,
@@ -68,6 +68,7 @@ export function EarningsPanel() {
       setIsBusy(true);
       setStatus("Fetching onchain earnings…");
       const res = await sdk!.getOnchainEarnings(walletInfo.address);
+      console.log("res", res);
       setOnchainEarnings(res);
       const total = sumTokenAmountStrings(res.data.totalEarningsByToken);
       setStatus(`Onchain earnings loaded: ${formatUsd(total)} (all tokens).`);
@@ -167,54 +168,8 @@ export function EarningsPanel() {
             <TokenAmountGrid title="Total by token" record={d.totalEarningsByToken} />
             <TokenAmountGrid
               title="Lifetime by token"
-              record={d.lifetimeEarningsByToken}
+              record={d.totalEarningsByToken}
             />
-            {d.currentEarningsByChain &&
-              Object.keys(d.currentEarningsByChain).length > 0 && (
-                <div className="mt-3 flex flex-col gap-3">
-                  <span className="text-xs font-semibold uppercase text-slate-400">
-                    Current by chain
-                  </span>
-                  {Object.entries(d.currentEarningsByChain).map(
-                    ([chainId, byToken]) => (
-                      <div key={chainId}>
-                        <span className="text-sm text-white">
-                          {formatChainName(chainId)}
-                        </span>
-                        <div className="mt-1 flex flex-col gap-1">
-                          {Object.entries(byToken).map(([sym, raw]) => (
-                            <DetailRow key={sym} label={sym}>
-                              {formatUsd(parseFloat(raw || "0"))}
-                            </DetailRow>
-                          ))}
-                        </div>
-                      </div>
-                    )
-                  )}
-                </div>
-              )}
-            {d.unrealizedEarnings &&
-              Object.keys(d.unrealizedEarnings).length > 0 && (
-                <div className="mt-3 flex flex-col gap-3">
-                  <span className="text-xs font-semibold uppercase text-slate-400">
-                    Unrealized (by bucket / chain)
-                  </span>
-                  {Object.entries(d.unrealizedEarnings).map(([bucket, byToken]) => (
-                    <div key={bucket}>
-                      <span className="text-sm text-white">
-                        {formatChainName(bucket)}
-                      </span>
-                      <div className="mt-1 flex flex-col gap-1">
-                        {Object.entries(byToken).map(([sym, raw]) => (
-                          <DetailRow key={sym} label={sym}>
-                            {formatUsd(parseFloat(raw || "0"))}
-                          </DetailRow>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
           </>
         )}
       </section>
