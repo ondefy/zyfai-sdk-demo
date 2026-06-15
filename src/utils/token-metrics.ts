@@ -1,4 +1,4 @@
-import type { DailyApyEntry } from "@zyfai/sdk";
+import type { ChainTokenEarnings, DailyApyEntry } from "@zyfai/sdk";
 
 /** Sum string amounts from a token → amount map (API returns numeric strings). */
 export const sumTokenAmountStrings = (
@@ -7,6 +7,17 @@ export const sumTokenAmountStrings = (
   if (!m) return 0;
   return Object.values(m).reduce(
     (acc, v) => acc + parseFloat(v || "0"),
+    0
+  );
+};
+
+/** Sum string amounts across a chain → token → amount map. */
+export const sumChainTokenAmountStrings = (
+  m: ChainTokenEarnings | undefined
+): number => {
+  if (!m) return 0;
+  return Object.values(m).reduce(
+    (acc, perChain) => acc + sumTokenAmountStrings(perChain),
     0
   );
 };

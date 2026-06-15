@@ -10,6 +10,7 @@ import { formatUsd } from "../utils/formatters";
 import {
   averageTokenNumbers,
   blendedApyFromDailyEntry,
+  sumChainTokenAmountStrings,
   sumTokenAmountStrings,
 } from "../utils/token-metrics";
 
@@ -208,10 +209,12 @@ export function EarningsPanel() {
               Daily Breakdown ({dailyEarnings.count} entries)
             </span>
             {dailyEarnings.data.slice(0, 10).map((entry, i) => {
-              const delta = sumTokenAmountStrings(
+              const delta = sumChainTokenAmountStrings(
                 entry.daily_total_delta_by_token
               );
-              const total = sumTokenAmountStrings(entry.total_earnings_by_token);
+              const total = sumChainTokenAmountStrings(
+                entry.total_earnings_by_token
+              );
               return (
                 <div
                   key={i}
