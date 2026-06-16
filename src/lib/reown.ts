@@ -2,7 +2,7 @@ import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import type { AppKitNetwork } from "@reown/appkit/networks";
 import { arbitrum, base, plasma } from "@reown/appkit/networks";
 import { createAppKit } from "@reown/appkit/react";
-import { cookieStorage, createStorage } from "wagmi";
+import { cookieStorage, createStorage, http } from "wagmi";
 
 const supportedNetworks: [AppKitNetwork, ...AppKitNetwork[]] = [
   base,
@@ -11,6 +11,7 @@ const supportedNetworks: [AppKitNetwork, ...AppKitNetwork[]] = [
 ];
 
 const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
+const alchemyApiKey = import.meta.env.VITE_ALCHEMY_API_KEY;
 
 if (!projectId) {
   throw new Error(
@@ -28,6 +29,19 @@ const wagmiAdapter = new WagmiAdapter({
   networks: supportedNetworks,
   ssr: false,
   storage: createStorage({ storage: cookieStorage }),
+  transports: {
+    [base.id]: http(
+      alchemyApiKey
+        ? `https://base-mainnet.g.alchemy.com/v2/${alchemyApiKey}`
+        : undefined
+    ),
+    [arbitrum.id]: http(
+      alchemyApiKey
+        ? `https://arb-mainnet.g.alchemy.com/v2/${alchemyApiKey}`
+        : undefined
+    ),
+    [plasma.id]: http(),
+  },
 });
 
 export const wagmiConfig = wagmiAdapter.wagmiConfig;
@@ -50,7 +64,12 @@ createAppKit({
     onramp: false,
     swaps: false,
     history: false,
+    allWallets: false,
   },
   themeMode: "dark",
   allowUnsupportedChain: true,
+  enableWalletConnect: true,
+  enableInjected: true,
+  enableCoinbase: false,
+  enableEIP6963: true,
 });
