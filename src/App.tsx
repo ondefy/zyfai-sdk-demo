@@ -23,6 +23,7 @@ import { PositionsPanel } from "./components/PositionsPanel";
 import { YieldOpportunitiesPanel } from "./components/YieldOpportunitiesPanel";
 import { OpportunitiesRiskPanel } from "./components/OpportunitiesRiskPanel";
 import { RebalancePanel } from "./components/RebalancePanel";
+import { SimulateBestPositionsPanel } from "./components/SimulateBestPositionsPanel";
 
 // ── Platform-wide stats & SDK key info ──
 import { PlatformStatsPanel } from "./components/PlatformStatsPanel";
@@ -80,6 +81,7 @@ export default function App() {
         <SectionTitle>Yield Opportunities & Risk</SectionTitle>
         <YieldOpportunitiesPanel />
         <OpportunitiesRiskPanel />
+        <SimulateBestPositionsPanel />
         <RebalancePanel />
 
         {/* ── 8. Platform stats & SDK info ── */}
