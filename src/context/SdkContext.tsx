@@ -116,10 +116,9 @@ export function SdkProvider({ children }: PropsWithChildren) {
     if (!sdk || !walletClient || !address) return;
     let active = true;
     setStatus("Linking wallet to Zyfai SDK…");
-    const chainId: SupportedChainId = isSupportedChain(
-      walletClient.chain?.id ?? 0
-    )
-      ? walletClient.chain!.id
+    const rawChainId = walletClient.chain?.id ?? 0;
+    const chainId: SupportedChainId = isSupportedChain(rawChainId)
+      ? rawChainId
       : DEFAULT_CHAIN;
 
     sdk
