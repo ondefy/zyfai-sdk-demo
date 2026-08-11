@@ -69,7 +69,7 @@ export function EarningsPanel() {
       setIsBusy(true);
       setStatus("Fetching onchain earnings…");
       const res = await sdk!.getOnchainEarnings(walletInfo.address);
-      console.log("res", res);
+      console.log("fetchOnchainEarnings res", res);
       setOnchainEarnings(res);
       const total = sumTokenAmountStrings(res.data.totalEarningsByToken);
       setStatus(`Onchain earnings loaded: ${formatUsd(total)} (all tokens).`);
@@ -167,10 +167,6 @@ export function EarningsPanel() {
         {d && (
           <>
             <TokenAmountGrid title="Total by token" record={d.totalEarningsByToken} />
-            <TokenAmountGrid
-              title="Lifetime by token"
-              record={d.totalEarningsByToken}
-            />
           </>
         )}
       </section>

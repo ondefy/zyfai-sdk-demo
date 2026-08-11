@@ -1,13 +1,13 @@
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import type { AppKitNetwork } from "@reown/appkit/networks";
-import { arbitrum, base, plasma } from "@reown/appkit/networks";
+import { arbitrum, base, mainnet } from "@reown/appkit/networks";
 import { createAppKit } from "@reown/appkit/react";
 import { cookieStorage, createStorage, http } from "wagmi";
 
 const supportedNetworks: [AppKitNetwork, ...AppKitNetwork[]] = [
+  mainnet,
   base,
   arbitrum,
-  plasma,
 ];
 
 const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
@@ -30,6 +30,11 @@ const wagmiAdapter = new WagmiAdapter({
   ssr: false,
   storage: createStorage({ storage: cookieStorage }),
   transports: {
+    [mainnet.id]: http(
+      alchemyApiKey
+        ? `https://eth-mainnet.g.alchemy.com/v2/${alchemyApiKey}`
+        : undefined
+    ),
     [base.id]: http(
       alchemyApiKey
         ? `https://base-mainnet.g.alchemy.com/v2/${alchemyApiKey}`
@@ -40,7 +45,6 @@ const wagmiAdapter = new WagmiAdapter({
         ? `https://arb-mainnet.g.alchemy.com/v2/${alchemyApiKey}`
         : undefined
     ),
-    [plasma.id]: http(),
   },
 });
 

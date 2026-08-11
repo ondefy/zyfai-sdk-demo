@@ -51,7 +51,7 @@ This demo repo must stop teaching the old multi-step deploy → session key → 
 - [ ] 3. Update agent wrapper
 - [x] 4. Modernize Deposit panel + App sections *(awaiting user verify)*
 - [ ] 5. Update README
-- [ ] 6. Align supported chains with SDK
+- [x] 6. Align supported chains with SDK *(awaiting user verify)*
 
 ## Current Status / Progress Tracking
 
@@ -64,12 +64,19 @@ Mode: **Executor**.
 - Added EURC + first-deposit strategy selector; pass strategy to `depositFunds`
 - Deposit outcome shows `smartWallet` + updates shared `walletInfo`
 
+**Task 6 (chains) done (pending user verify):**
+- Removed Plasma (9745); added Ethereum Mainnet (1) in `formatters`, `reown.ts`, agent messages, pool chain select
+- Fixed `DepositWithdrawPanel` `setWalletInfo`: cast `smartWallet` as `Address`, include `isOwner`
+- `pnpm run build` (`tsc -b && vite build`) succeeds locally
+
 ## Executor's Feedback or Assistance Requests
 
-Please verify the Deposit panel copy and new controls (EURC, strategy). Confirm to proceed (next: task 3 agent wrapper, or 6 chains if preferred).
+Please verify: after wallet connect (or after Fetch User Details), Earnings buttons enable (`walletInfo` auto-filled). Confirm task 6 + this walletInfo sync. Next: task 3 or 5.
 
 ## Lessons
 
 - `pnpm update` / `upgrade` do not bump pinned exact versions in `package.json` (e.g. `"0.2.41"`); use `pnpm add @zyfai/sdk@latest`.
 - Always ask Planner vs Executor when mode is unspecified.
 - Custom chevron via `background-image` on `<select>` is unreliable (especially with Tailwind `bg-*`); use a wrapper + absolute chevron (`ui/Select`).
+- `DepositResponse.smartWallet` is plain `string`; `SmartWalletResponse.address` is `Address` — cast when bridging, and include required `isOwner`.
+- Earnings/`walletInfo` was only set by Resolve Safe or deposit; User Details `smartWallet` did not populate it — auto-resolve after `connectAccount` + sync from `userDetails.smartWallet`.

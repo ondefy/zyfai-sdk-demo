@@ -21,7 +21,7 @@ export class ZyfaiAgent {
     private validateChainId(chainId: number): SupportedChainId {
       if (!isSupportedChain(chainId)) {
         throw new Error(
-          `Unsupported chain ID: ${chainId}. Supported chains: Base (8453), Arbitrum (42161), Plasma (9745)`
+          `Unsupported chain ID: ${chainId}. Supported chains: Ethereum Mainnet (1), Base (8453), Arbitrum (42161)`
         );
       }
   
@@ -30,7 +30,7 @@ export class ZyfaiAgent {
   
     /**
      * Connect wallet to Zyf.ai using SIWE authentication.
-     * @param chainId - Target blockchain (8453=Base, 42161=Arbitrum, 9745=Plasma)
+     * @param chainId - Target blockchain (1=Ethereum, 8453=Base, 42161=Arbitrum)
      * @param provider - provider of the connecting user
      * @returns The connected User EOA address
      */

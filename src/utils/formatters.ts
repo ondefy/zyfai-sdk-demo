@@ -5,9 +5,9 @@ import type { SupportedChainId } from "@zyfai/sdk";
 // ---------------------------------------------------------------------------
 
 export const CHAIN_OPTIONS: { id: SupportedChainId; label: string }[] = [
+  { id: 1, label: "Ethereum Mainnet (1)" },
   { id: 8453, label: "Base (8453)" },
   { id: 42161, label: "Arbitrum (42161)" },
-  { id: 9745, label: "Plasma (9745)" },
 ];
 
 export const isSupportedChain = (value: number): value is SupportedChainId =>
@@ -16,12 +16,12 @@ export const isSupportedChain = (value: number): value is SupportedChainId =>
 export const formatChainName = (chainId: string | number) => {
   const id = String(chainId);
   switch (id) {
+    case "1":
+      return "Ethereum";
     case "8453":
       return "Base";
     case "42161":
       return "Arbitrum";
-    case "9745":
-      return "Plasma";
     case "146":
       return "Sonic";
     default:
@@ -32,18 +32,18 @@ export const formatChainName = (chainId: string | number) => {
 export const filterSupportedChains = (chains: (string | number)[]) =>
   chains.filter((chain) => {
     const id = String(chain);
-    return id === "8453" || id === "42161" || id === "9745";
+    return id === "1" || id === "8453" || id === "42161";
   });
 
 export const getExplorerUrl = (chainId: string | number, txHash: string) => {
   const id = String(chainId);
   switch (id) {
+    case "1":
+      return `https://etherscan.io/tx/${txHash}`;
     case "8453":
       return `https://basescan.org/tx/${txHash}`;
     case "42161":
       return `https://arbiscan.io/tx/${txHash}`;
-    case "9745":
-      return `https://plasmascan.to/tx/${txHash}`;
     default:
       return `https://etherscan.io/tx/${txHash}`;
   }

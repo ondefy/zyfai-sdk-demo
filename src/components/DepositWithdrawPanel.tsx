@@ -1,5 +1,10 @@
 import { useState } from "react";
-import type { DepositResponse, Strategy, WithdrawResponse } from "@zyfai/sdk";
+import type {
+  Address,
+  DepositResponse,
+  Strategy,
+  WithdrawResponse,
+} from "@zyfai/sdk";
 import { useSdk } from "../context/SdkContext";
 import { Btn, Panel, Callout, Select } from "./ui";
 import { truncate, getExplorerUrl } from "../utils/formatters";
@@ -64,8 +69,9 @@ export function DepositWithdrawPanel() {
       setDepositOutcome({ res, asset: depositAsset });
       if (res.smartWallet) {
         setWalletInfo({
-          address: res.smartWallet,
+          address: res.smartWallet as Address,
           isDeployed: true,
+          isOwner: true,
         });
       }
       setStatus(

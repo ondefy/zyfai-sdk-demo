@@ -121,9 +121,9 @@ export function PoolCustomizationPanel() {
             value={chainId}
             onChange={(e) => setChainId(Number(e.target.value))}
           >
+            <option value={1}>Ethereum Mainnet (1)</option>
             <option value={8453}>Base (8453)</option>
             <option value={42161}>Arbitrum (42161)</option>
-            <option value={9745}>Plasma (9745)</option>
           </Select>
         </label>
       </div>

@@ -111,18 +111,30 @@ export function SdkProvider({ children }: PropsWithChildren) {
     }
   }, [address, isConnected, chain]);
 
-  // Connect wallet to SDK whenever walletClient changes
+  // Connect wallet to SDK whenever walletClient changes, then resolve Safe
   useEffect(() => {
     if (!sdk || !walletClient || !address) return;
     let active = true;
     setStatus("Linking wallet to Zyfai SDK…");
+    const chainId: SupportedChainId = isSupportedChain(
+      walletClient.chain?.id ?? 0
+    )
+      ? walletClient.chain!.id
+      : DEFAULT_CHAIN;
+
     sdk
-      .connectAccount(
-        walletClient,
-        walletClient.chain?.id as SupportedChainId | undefined
-      )
-      .then(() => {
-        if (active) setStatus("Wallet ready. You can now use Zyfai.");
+      .connectAccount(walletClient, chainId)
+      .then(async () => {
+        if (!active) return;
+        setStatus("Wallet ready. You can now use Zyfai.");
+        try {
+          const res = await sdk.getSmartWalletAddress(address, chainId);
+          if (active && res.address) {
+            setWalletInfo(res);
+          }
+        } catch {
+          // No Safe assigned yet (expected before first deposit)
+        }
       })
       .catch((err) => {
         if (active)
@@ -132,6 +144,19 @@ export function SdkProvider({ children }: PropsWithChildren) {
       active = false;
     };
   }, [sdk, walletClient, address]);
+
+  // User details often already include smartWallet — keep walletInfo in sync
+  useEffect(() => {
+    if (!userDetails?.smartWallet) return;
+    setWalletInfo((prev) => {
+      if (prev?.address === userDetails.smartWallet) return prev;
+      return {
+        address: userDetails.smartWallet!,
+        isDeployed: prev?.isDeployed ?? true,
+        isOwner: prev?.isOwner ?? true,
+      };
+    });
+  }, [userDetails?.smartWallet]);
 
   // Helpers
   const ensureSdk = () => {
