@@ -48,11 +48,12 @@ export function PlatformStatsPanel() {
       setStatus("Fetching APY per strategy…");
       const res = await sdk!.getAPYPerStrategy(
         false,
-        7,
-        "conservative",
-        8453,
-        "USDC"
+        30,
+        "aggressive",
+        1,
+        "WETH"
       );
+      console.log(res);
       setApyPerStrategy(res);
       setStatus("APY per strategy loaded.");
     } catch (e) {

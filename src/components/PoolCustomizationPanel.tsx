@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { CustomizationConfig, GetSelectedPoolsResponse } from "@zyfai/sdk";
 import { useSdk } from "../context/SdkContext";
-import { Btn, Panel, DetailRow } from "./ui";
+import { Btn, Panel, DetailRow, Select } from "./ui";
 import { formatChainName } from "../utils/formatters";
 
 export function PoolCustomizationPanel() {
@@ -98,7 +98,7 @@ export function PoolCustomizationPanel() {
       <div className="mb-4 grid grid-cols-2 gap-3">
         <label className="flex flex-col gap-1 text-sm text-slate-400">
           Protocol
-          <select
+          <Select
             value={selectedProtocol}
             onChange={(e) => {
               setSelectedProtocol(e.target.value);
@@ -106,7 +106,6 @@ export function PoolCustomizationPanel() {
               setSelectedPools([]);
               setCurrentConfig(null);
             }}
-            className="rounded-lg border border-dark-500 bg-dark-700 px-3 py-2 text-sm text-white"
           >
             <option value="">-- Select --</option>
             {protocols.map((p) => (
@@ -114,19 +113,18 @@ export function PoolCustomizationPanel() {
                 {p.name} ({p.type})
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <label className="flex flex-col gap-1 text-sm text-slate-400">
           Chain
-          <select
+          <Select
             value={chainId}
             onChange={(e) => setChainId(Number(e.target.value))}
-            className="rounded-lg border border-dark-500 bg-dark-700 px-3 py-2 text-sm text-white"
           >
             <option value={8453}>Base (8453)</option>
             <option value={42161}>Arbitrum (42161)</option>
             <option value={9745}>Plasma (9745)</option>
-          </select>
+          </Select>
         </label>
       </div>
 

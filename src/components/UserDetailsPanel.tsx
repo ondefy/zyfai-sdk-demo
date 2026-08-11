@@ -1,5 +1,5 @@
 import { useSdk, type ProfileAsset } from "../context/SdkContext";
-import { Btn, Panel, DetailRow } from "./ui";
+import { Btn, Panel, DetailRow, Select } from "./ui";
 import { formatChainName } from "../utils/formatters";
 
 export function UserDetailsPanel() {
@@ -96,16 +96,15 @@ export function UserDetailsPanel() {
     >
       <label className="mb-3 flex max-w-xs flex-col gap-1 text-sm text-slate-400">
         Profile asset
-        <select
+        <Select
           value={profileAsset}
           onChange={(e) =>
             void selectProfileAsset(e.target.value as ProfileAsset)
           }
-          className="rounded-lg border border-dark-500 bg-dark-700 py-2 pl-3 pr-10 text-sm text-white"
         >
           <option value="USDC">USDC</option>
           <option value="WETH">WETH</option>
-        </select>
+        </Select>
       </label>
 
       <div className="flex flex-wrap gap-3">

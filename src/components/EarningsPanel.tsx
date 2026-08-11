@@ -5,7 +5,7 @@ import type {
   DailyApyHistoryResponse,
 } from "@zyfai/sdk";
 import { useSdk } from "../context/SdkContext";
-import { Btn, Panel } from "./ui";
+import { Btn, Panel, Select } from "./ui";
 import { formatUsd } from "../utils/formatters";
 import {
   averageTokenNumbers,
@@ -243,17 +243,16 @@ export function EarningsPanel() {
         <div className="mb-3 flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1 text-sm text-slate-400">
             Period
-            <select
+            <Select
               value={apyDays}
               onChange={(e) =>
                 setApyDays(e.target.value as "7D" | "14D" | "30D")
               }
-              className="rounded-lg border border-dark-500 bg-dark-700 py-2 pl-3 pr-10 text-sm text-white"
             >
               <option value="7D">7 Days</option>
               <option value="14D">14 Days</option>
               <option value="30D">30 Days</option>
-            </select>
+            </Select>
           </label>
           <Btn onClick={fetchApyHistory} disabled={isBusy || !smartWalletReady}>
             Get APY History

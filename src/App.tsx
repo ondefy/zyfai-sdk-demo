@@ -3,9 +3,8 @@ import { Header } from "./components/Header";
 import { StatusBar } from "./components/StatusBar";
 import { ChainSelector } from "./components/ChainSelector";
 
-// ── Core (Account deployment → Session key → Deposit / Withdraw) ──
+// ── Core (Smart wallet lookup → Deposit / Withdraw; onboarding via depositFunds) ──
 import { SmartWalletPanel } from "./components/SmartWalletPanel";
-import { SessionKeyPanel } from "./components/SessionKeyPanel";
 import { DepositWithdrawPanel } from "./components/DepositWithdrawPanel";
 
 // ── Earnings ──
@@ -48,23 +47,19 @@ export default function App() {
         {/* <Vault /> */}
 
 
-        {/* ── 1. Account deployment ── */}
-        <SectionTitle>Account Deployment</SectionTitle>
-        <SmartWalletPanel />
-
-        {/* ── 2. Session key ── */}
-        <SectionTitle>Session Key Signatures</SectionTitle>
-        <SessionKeyPanel />
-
-        {/* ── 3. Deposit / Withdraw ── */}
+        {/* ── 1. Deposit / Withdraw (first deposit onboards Safe + session) ── */}
         <SectionTitle>Deposit & Withdraw</SectionTitle>
         <DepositWithdrawPanel />
 
-        {/* ── 4. Earnings ── */}
+        {/* ── 2. Smart wallet lookup ── */}
+        <SectionTitle>Smart Wallet</SectionTitle>
+        <SmartWalletPanel />
+
+        {/* ── 3. Earnings ── */}
         <SectionTitle>Earnings</SectionTitle>
         <EarningsPanel />
 
-        {/* ── 5. User details, configuration & splitting ── */}
+        {/* ── 4. User details, configuration & splitting ── */}
         <SectionTitle>User Details & Configuration</SectionTitle>
         <UserDetailsPanel />
         <AdvancedProfilePanel />

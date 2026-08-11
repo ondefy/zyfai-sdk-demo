@@ -4,3 +4,4 @@ export { Btn } from "./Btn";
 export { Badge } from "./Badge";
 export { StatCard } from "./StatCard";
 export { Callout } from "./Callout";
+export { Select } from "./Select";

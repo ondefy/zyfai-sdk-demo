@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Portfolio, PositionSlot } from "@zyfai/sdk";
 import { useSdk } from "../context/SdkContext";
-import { Btn } from "./ui";
+import { Btn, Select } from "./ui";
 import {
   CHAIN_OPTIONS,
   formatUsd,
@@ -84,20 +84,19 @@ export function ChainSelector() {
       <div className="flex flex-wrap items-end gap-4">
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-slate-400">Target Chain</span>
-          <select
+          <Select
             value={selectedChain}
             onChange={(e) => {
               const next = Number(e.target.value);
               if (isSupportedChain(next)) setSelectedChain(next);
             }}
-            className="rounded-lg border border-dark-500 bg-dark-700 px-3 py-2 text-sm text-white"
           >
             {CHAIN_OPTIONS.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.label}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
 
         <div className="flex gap-3">
